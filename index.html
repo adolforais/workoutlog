@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src="workout_program.js"></script>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +15,8 @@
     .btn { margin: 10px 5px 10px 0; padding: 6px 16px; font-size: 1em; }
     .small { font-size: 0.9em; color: #666; }
   </style>
+  <!-- Program and day names data -->
+  <script src="workout_program.js"></script>
 </head>
 <body>
   <div id="mainContent">
@@ -31,14 +32,8 @@
         </select>
       </label>
       <label style="margin-left:1em">Day:
-          <select id="day" required></select>
-          </label>
-        <button type="button" class="btn" onclick="generateTable()">Show Exercises</button>
-      </form>
-      <script>
-        // Call this after DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', renderDayOptions);
-      </script>
+        <select id="day" required></select>
+      </label>
       <button type="button" class="btn" onclick="generateTable()">Show Exercises</button>
     </form>
     <div id="session"></div>
@@ -51,144 +46,145 @@
     <input type="file" id="importFile" class="hidden" accept=".json" onchange="handleFileImport(event)">
   </div>
 
-
 <script>
-
 function renderDayOptions() {
   const daySelect = document.getElementById('day');
-  daySelect.innerHTML = ""; // Clear old options if any
+  daySelect.innerHTML = "";
   for (const key in programDays) {
     const opt = document.createElement("option");
     opt.value = key;
     opt.textContent = programDays[key];
     daySelect.appendChild(opt);
-    }
+  }
 }
 
-  
-  function generateTable() {
-    const week = parseInt(document.getElementById('week').value) - 1;
-    const day = document.getElementById('day').value;
-    const sessionDiv = document.getElementById('session');
-    const exercises = program[day];
-    let html = `<h3>${document.getElementById('day').options[document.getElementById('day').selectedIndex].text} - Week ${week+1}</h3>`;
-    html += `<form id='sessionForm' onsubmit='saveSession(event)'>`;
-    html += `<table><tr><th>Exercise</th><th>Weight</th>`;
-    let maxSets = Math.max(...exercises.map(e => e.sets[week]));
-    for (let s = 1; s <= maxSets; ++s) html += `<th>Set ${s} reps<br><span class='small'>(target)</span></th>`;
+function generateTable() {
+  const week = parseInt(document.getElementById('week').value) - 1;
+  const day = document.getElementById('day').value;
+  const sessionDiv = document.getElementById('session');
+  const exercises = program[day];
+  let html = `<h3>${document.getElementById('day').options[document.getElementById('day').selectedIndex].text} - Week ${week+1}</h3>`;
+  html += `<form id='sessionForm' onsubmit='saveSession(event)'>`;
+  html += `<table><tr><th>Exercise</th><th>Weight</th>`;
+  let maxSets = Math.max(...exercises.map(e => e.sets[week]));
+  for (let s = 1; s <= maxSets; ++s) html += `<th>Set ${s} reps<br><span class='small'>(target)</span></th>`;
+  html += `</tr>`;
+  exercises.forEach(ex => {
+    html += `<tr><td>${ex.name}<br><span class='small'>${ex.sets[week]} × ${ex.reps[week]}</span></td>`;
+    html += `<td><input type='number' min='0' step='0.5' name='w_${ex.name}' placeholder='kg' required></td>`;
+    for (let s = 0; s < ex.sets[week]; ++s) {
+      html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s+1}' placeholder='Reps' required></td>`;
+    }
+    for (let s = ex.sets[week]; s < maxSets; ++s) html += `<td class='hidden'></td>`;
     html += `</tr>`;
-    exercises.forEach(ex => {
-      html += `<tr><td>${ex.name}<br><span class='small'>${ex.sets[week]} × ${ex.reps[week]}</span></td>`;
-      html += `<td><input type='number' min='0' step='0.5' name='w_${ex.name}' placeholder='kg' required></td>`;
-      for (let s = 0; s < ex.sets[week]; ++s) {
-        html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s+1}' placeholder='Reps' required></td>`;
-      }
-      for (let s = ex.sets[week]; s < maxSets; ++s) html += `<td class='hidden'></td>`;
+  });
+  html += `</table><br>`;
+  html += `<button type='submit' class='btn'>Save Session</button></form>`;
+  sessionDiv.innerHTML = html;
+}
+
+function saveSession(event) {
+  event.preventDefault();
+  const date = document.getElementById('date').value;
+  const week = document.getElementById('week').value;
+  const day = document.getElementById('day').value;
+  const form = document.getElementById('sessionForm');
+  const exercises = program[day];
+  let entry = { date, week, day, log: [] };
+  exercises.forEach(ex => {
+    let exObj = { name: ex.name, weight: form[`w_${ex.name}`].value, reps: [] };
+    for (let s = 1; s <= ex.sets[week-1]; ++s) {
+      exObj.reps.push(form[`r_${ex.name}_${s}`].value);
+    }
+    entry.log.push(exObj);
+  });
+  let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+  allLogs.push(entry);
+  localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+  document.getElementById('session').innerHTML = '<b>Session saved!</b>';
+  renderLog();
+}
+
+function renderLog() {
+  const out = document.getElementById('log');
+  let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+  if (!allLogs.length) { out.innerHTML = '<i>No sessions logged yet.</i>'; return; }
+  let html = '';
+  allLogs.slice().reverse().forEach(e => {
+    html += `<b>${e.date}</b> | Week ${e.week} | ${programDays[e.day] || e.day}<br><table><tr><th>Exercise</th><th>Weight</th>`;
+    let sets = e.log.map(x => x.reps.length);
+    let maxSets = Math.max(...sets);
+    for (let i = 1; i <= maxSets; ++i) html += `<th>Set ${i} reps</th>`;
+    html += `</tr>`;
+    e.log.forEach(ex => {
+      html += `<tr><td>${ex.name}</td><td>${ex.weight}</td>`;
+      ex.reps.forEach(r => html += `<td>${r}</td>`);
+      for (let s = ex.reps.length; s < maxSets; ++s) html += `<td></td>`;
       html += `</tr>`;
     });
     html += `</table><br>`;
-    html += `<button type='submit' class='btn'>Save Session</button></form>`;
-    sessionDiv.innerHTML = html;
-  }
+  });
+  out.innerHTML = html;
+}
 
-  function saveSession(event) {
-    event.preventDefault();
-    const date = document.getElementById('date').value;
-    const week = document.getElementById('week').value;
-    const day = document.getElementById('day').value;
-    const form = document.getElementById('sessionForm');
-    const exercises = program[day];
-    let entry = { date, week, day, log: [] };
-    exercises.forEach(ex => {
-      let exObj = { name: ex.name, weight: form[`w_${ex.name}`].value, reps: [] };
-      for (let s = 1; s <= ex.sets[week-1]; ++s) {
-        exObj.reps.push(form[`r_${ex.name}_${s}`].value);
-      }
-      entry.log.push(exObj);
-    });
-    let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
-    allLogs.push(entry);
-    localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
-    document.getElementById('session').innerHTML = '<b>Session saved!</b>';
+function clearLog() {
+  if (confirm('Clear ALL logs?')) {
+    localStorage.removeItem('hypertrophyLogs');
     renderLog();
   }
+}
 
-  function renderLog() {
-    const out = document.getElementById('log');
-    let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
-    if (!allLogs.length) { out.innerHTML = '<i>No sessions logged yet.</i>'; return; }
-    let html = '';
-    allLogs.slice().reverse().forEach(e => {
-      html += `<b>${e.date}</b> | Week ${e.week} | ${document.getElementById('day').querySelector(`option[value=${e.day}]`).text}<br><table><tr><th>Exercise</th><th>Weight</th>`;
-      let sets = e.log.map(x => x.reps.length);
-      let maxSets = Math.max(...sets);
-      for (let i = 1; i <= maxSets; ++i) html += `<th>Set ${i} reps</th>`;
-      html += `</tr>`;
-      e.log.forEach(ex => {
-        html += `<tr><td>${ex.name}</td><td>${ex.weight}</td>`;
-        ex.reps.forEach(r => html += `<td>${r}</td>`);
-        for (let s = ex.reps.length; s < maxSets; ++s) html += `<td></td>`;
-        html += `</tr>`;
-      });
-      html += `</table><br>`;
-    });
-    out.innerHTML = html;
+// EXPORT uses last session date in filename
+function exportJSON() {
+  let allLogs = localStorage.getItem('hypertrophyLogs');
+  if (!allLogs) { alert('No sessions to export!'); return; }
+  let logsArray = JSON.parse(allLogs);
+  if (!Array.isArray(logsArray) || logsArray.length === 0) {
+    alert('No sessions to export!'); return;
   }
+  let lastSession = logsArray[logsArray.length - 1];
+  let lastDate = lastSession.date || 'session';
+  let safeDate = lastDate.replace(/[^0-9\-]/g, '');
+  let filename = `hypertrophy_workout_log_${safeDate}.json`;
 
-  function clearLog() {
-    if (confirm('Clear ALL logs?')) {
-      localStorage.removeItem('hypertrophyLogs');
+  let blob = new Blob([allLogs], {type: 'application/json'});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importJSON() {
+  document.getElementById('importFile').click();
+}
+function handleFileImport(event) {
+  let file = event.target.files[0];
+  if (!file) return;
+  let reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let logs = JSON.parse(e.target.result);
+      if (!Array.isArray(logs)) throw 'Invalid format';
+      if (!confirm('Overwrite your current log with the imported file?')) return;
+      localStorage.setItem('hypertrophyLogs', JSON.stringify(logs));
       renderLog();
+      alert('Log imported!');
+    } catch {
+      alert('Invalid file or format.');
     }
-  }
+  };
+  reader.readAsText(file);
+}
 
-  // EXPORT uses last session date in filename
-  function exportJSON() {
-    let allLogs = localStorage.getItem('hypertrophyLogs');
-    if (!allLogs) { alert('No sessions to export!'); return; }
-    let logsArray = JSON.parse(allLogs);
-    if (!Array.isArray(logsArray) || logsArray.length === 0) {
-      alert('No sessions to export!'); return;
-    }
-    let lastSession = logsArray[logsArray.length - 1];
-    let lastDate = lastSession.date || 'session';
-    let safeDate = lastDate.replace(/[^0-9\-]/g, '');
-    let filename = `hypertrophy_workout_log_${safeDate}.json`;
-
-    let blob = new Blob([allLogs], {type: 'application/json'});
-    let url = URL.createObjectURL(blob);
-    let a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function importJSON() {
-    document.getElementById('importFile').click();
-  }
-  function handleFileImport(event) {
-    let file = event.target.files[0];
-    if (!file) return;
-    let reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        let logs = JSON.parse(e.target.result);
-        if (!Array.isArray(logs)) throw 'Invalid format';
-        if (!confirm('Overwrite your current log with the imported file?')) return;
-        localStorage.setItem('hypertrophyLogs', JSON.stringify(logs));
-        renderLog();
-        alert('Log imported!');
-      } catch {
-        alert('Invalid file or format.');
-      }
-    };
-    reader.readAsText(file);
-  }
-
+// --- On load ---
+document.addEventListener('DOMContentLoaded', function() {
+  renderDayOptions();
   renderLog();
+});
 </script>
 </body>
 </html>
