@@ -210,16 +210,28 @@
   function exportJSON() {
     let allLogs = localStorage.getItem('hypertrophyLogs');
     if (!allLogs) { alert('No sessions to export!'); return; }
+    let logsArray = JSON.parse(allLogs);
+    if (!Array.isArray(logsArray) || logsArray.length === 0) {
+      alert('No sessions to export!'); return;
+    }
+    // Find the date of the latest session (assumes date is in 'YYYY-MM-DD' format)
+    let lastSession = logsArray[logsArray.length - 1];
+    let lastDate = lastSession.date || 'session';
+    // Sanitize the date for filenames (in case of non-standard format)
+    let safeDate = lastDate.replace(/[^0-9\-]/g, '');
+    let filename = `hypertrophy_workout_log_${safeDate}.json`;
+  
     let blob = new Blob([allLogs], {type: 'application/json'});
     let url = URL.createObjectURL(blob);
     let a = document.createElement('a');
     a.href = url;
-    a.download = 'hypertrophy_workout_log.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
 
   function importJSON() {
     document.getElementById('importFile').click();
