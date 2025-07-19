@@ -17,6 +17,32 @@
   </style>
 </head>
 <body>
+  <div id="pwScreen" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+  <h2>Enter Password</h2>
+  <input id="pwInput" type="password" placeholder="Password" autofocus>
+  <button onclick="checkPW()">Enter</button>
+  <div id="pwError" style="color:red;margin-top:8px"></div>
+</div>
+<script>
+  // Set your password here
+  const PASSWORD = "mySecret123";
+  function checkPW() {
+    var v = document.getElementById('pwInput').value;
+    if(v === PASSWORD) {
+      document.getElementById('pwScreen').style.display = 'none';
+    } else {
+      document.getElementById('pwError').textContent = "Incorrect password";
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+  // Block rest of the page until password is entered
+  window.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('pwScreen').style.display = 'flex';
+    document.body.style.overflow = "hidden";
+  });
+</script>
+
 <h1>Hypertrophy Workout Log</h1>
 <form id="logForm">
   <label>Date: <input type="date" id="date" required></label><br><br>
