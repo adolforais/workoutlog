@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hypertrophy Workout Log</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 15px; }
+    h1 { color: #2d7d46; }
+    label, select, input { font-size: 1em; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #bbb; padding: 6px; text-align: center; }
+    th { background: #f0f0f0; }
+    .hidden { display: none; }
+    .btn { margin: 10px 5px 10px 0; padding: 6px 16px; font-size: 1em; }
+    .small { font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+<h1>Hypertrophy Workout Log</h1>
+<form id="logForm">
+  <label>Date: <input type="date" id="date" required></label><br><br>
+  <label>Week:
+    <select id="week" required>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+    </select>
+  </label>
+  <label style="margin-left:1em">Day:
+    <select id="day" required>
+      <option value="PushA">Push A (chest, front delts, triceps)</option>
+      <option value="PullA">Pull A (lats, upper back, biceps)</option>
+      <option value="LowerA">Lower A (quad dominant)</option>
+      <option value="PushB">Push B (chest, side delts, triceps)</option>
+      <option value="PullB">Pull B (upper-back thickness, arms)</option>
+      <option value="LowerB">Lower B (posterior-chain bias)</option>
+    </select>
+  </label>
+  <button type="button" class="btn" onclick="generateTable()">Show Exercises</button>
+</form>
+<div id="session"></div>
+<hr>
+<h2>Session Log</h2>
+<div id="log"></div>
+<button onclick="clearLog()" class="btn">Clear All Logs</button>
+<button onclick="exportJSON()" class="btn">Export Log (JSON)</button>
+<button onclick="importJSON()" class="btn">Import Log (JSON)</button>
+<input type="file" id="importFile" class="hidden" accept=".json" onchange="handleFileImport(event)">
+<script>
+// Program data
+const program = {
+  PushA: [
+    { name: "Barbell bench press", sets: [4,4,4,3], reps: ["6-8","6-8","6-8","6-8"] },
+    { name: "Incline dumbbell press", sets: [3,3,3,2], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Standing overhead press", sets: [3,3,3,2], reps: ["6-8","6-8","6-8","6-8"] },
+    { name: "Machine chest fly", sets: [3,4,5,2], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "Cable lateral raise", sets: [3,4,5,2], reps: ["12-15","12-15","12-15","12-15"] },
+    { name: "Overhead rope triceps ext.", sets: [3,3,3,2], reps: ["12-15","12-15","12-15","12-15"] },
+  ],
+  PullA: [
+    { name: "Weighted pull-ups", sets: [4,4,4,3], reps: ["6-8","6-8","6-8","6-8"] },
+    { name: "Chest-supported row", sets: [3,3,3,2], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Meadows row", sets: [3,3,3,2], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "Straight-arm pulldown", sets: [3,4,5,2], reps: ["12-15","12-15","12-15","12-15"] },
+    { name: "Seated incline curl", sets: [3,3,3,2], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "EZ-bar preacher curl", sets: [2,3,4,1], reps: ["12-15","12-15","12-15","12-15"] },
+  ],
+  LowerA: [
+    { name: "High-bar back squat", sets: [4,4,4,3], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Romanian deadlift", sets: [3,3,3,2], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Leg press (feet low-narrow)", sets: [3,4,5,2], reps: ["12-15","12-15","12-15","12-15"] },
+    { name: "Leg extension (slow eccentric)", sets: [3,4,5,2], reps: ["12-15","12-15","12-15","12-15"] },
+    { name: "Seated calf raise", sets: [3,3,3,2], reps: ["10-12","10-12","10-12","10-12"] },
+  ],
+  PushB: [
+    { name: "Smith incline press", sets: [4,4,4,3], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "Dumbbell shoulder press", sets: [3,3,3,2], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "Cable cross-over", sets: [3,4,5,2], reps: ["12-15","12-15","12-15","12-15"] },
+    { name: "Seated lateral raise", sets: [3,4,5,2], reps: ["15-20","15-20","15-20","15-20"] },
+    { name: "Dip machine", sets: [3,3,3,2], reps: ["12-15","12-15","12-15","12-15"] },
+    { name: "Single-arm cable kick-back", sets: [3,3,3,2], reps: ["15-20","15-20","15-20","15-20"] },
+  ],
+  PullB: [
+    { name: "Barbell row (reverse grip)", sets: [4,4,4,3], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Lat pulldown (close neutral)", sets: [3,3,3,2], reps: ["12","12","12","12"] },
+    { name: "Cable face pull", sets: [3,4,5,2], reps: ["15","15","15","15"] },
+    { name: "Dumbbell rear-delt swing", sets: [2,2,2,1], reps: ["20","20","20","20"] },
+    { name: "Hammer curl", sets: [3,3,3,2], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Incline dumbbell curl", sets: [3,4,5,2], reps: ["12-15","12-15","12-15","12-15"] },
+  ],
+  LowerB: [
+    { name: "Conventional deadlift", sets: [3,3,3,2], reps: ["6-8","6-8","6-8","6-8"] },
+    { name: "Front squat", sets: [3,3,3,2], reps: ["8-10","8-10","8-10","8-10"] },
+    { name: "Hip thrust", sets: [3,3,3,2], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "Seated leg curl", sets: [3,4,5,2], reps: ["10-12","10-12","10-12","10-12"] },
+    { name: "Leg-press calf raise", sets: [4,5,6,3], reps: ["12-15","12-15","12-15","12-15"] },
+  ],
+};
+
+// Generate table for the workout session
+function generateTable() {
+  const week = parseInt(document.getElementById('week').value) - 1;
+  const day = document.getElementById('day').value;
+  const sessionDiv = document.getElementById('session');
+  const exercises = program[day];
+  let html = `<h3>${document.getElementById('day').options[document.getElementById('day').selectedIndex].text} - Week ${week+1}</h3>`;
+  html += `<form id='sessionForm' onsubmit='saveSession(event)'>`;
+  html += `<table><tr><th>Exercise</th><th>Weight</th>`;
+  let maxSets = Math.max(...exercises.map(e => e.sets[week]));
+  for (let s = 1; s <= maxSets; ++s) html += `<th>Set ${s} reps<br><span class='small'>(target)</span></th>`;
+  html += `</tr>`;
+  exercises.forEach(ex => {
+    html += `<tr><td>${ex.name}<br><span class='small'>${ex.sets[week]} × ${ex.reps[week]}</span></td>`;
+    html += `<td><input type='number' min='0' step='0.5' name='w_${ex.name}' placeholder='kg' required></td>`;
+    for (let s = 0; s < ex.sets[week]; ++s) {
+      html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s+1}' placeholder='Reps' required></td>`;
+    }
+    for (let s = ex.sets[week]; s < maxSets; ++s) html += `<td class='hidden'></td>`;
+    html += `</tr>`;
+  });
+  html += `</table><br>`;
+  html += `<button type='submit' class='btn'>Save Session</button></form>`;
+  sessionDiv.innerHTML = html;
+}
+
+// Save session log to localStorage
+function saveSession(event) {
+  event.preventDefault();
+  const date = document.getElementById('date').value;
+  const week = document.getElementById('week').value;
+  const day = document.getElementById('day').value;
+  const form = document.getElementById('sessionForm');
+  const exercises = program[day];
+  let entry = { date, week, day, log: [] };
+  exercises.forEach(ex => {
+    let exObj = { name: ex.name, weight: form[`w_${ex.name}`].value, reps: [] };
+    for (let s = 1; s <= ex.sets[week-1]; ++s) {
+      exObj.reps.push(form[`r_${ex.name}_${s}`].value);
+    }
+    entry.log.push(exObj);
+  });
+  let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+  allLogs.push(entry);
+  localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+  document.getElementById('session').innerHTML = '<b>Session saved!</b>';
+  renderLog();
+}
+
+// Display log
+function renderLog() {
+  const out = document.getElementById('log');
+  let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+  if (!allLogs.length) { out.innerHTML = '<i>No sessions logged yet.</i>'; return; }
+  let html = '';
+  allLogs.slice().reverse().forEach(e => {
+    html += `<b>${e.date}</b> | Week ${e.week} | ${document.getElementById('day').querySelector(`option[value=${e.day}]`).text}<br><table><tr><th>Exercise</th><th>Weight</th>`;
+    let sets = e.log.map(x => x.reps.length);
+    let maxSets = Math.max(...sets);
+    for (let i = 1; i <= maxSets; ++i) html += `<th>Set ${i} reps</th>`;
+    html += `</tr>`;
+    e.log.forEach(ex => {
+      html += `<tr><td>${ex.name}</td><td>${ex.weight}</td>`;
+      ex.reps.forEach(r => html += `<td>${r}</td>`);
+      for (let s = ex.reps.length; s < maxSets; ++s) html += `<td></td>`;
+      html += `</tr>`;
+    });
+    html += `</table><br>`;
+  });
+  out.innerHTML = html;
+}
+
+// Clear all logs
+function clearLog() {
+  if (confirm('Clear ALL logs?')) {
+    localStorage.removeItem('hypertrophyLogs');
+    renderLog();
+  }
+}
+
+// Export log as JSON
+function exportJSON() {
+  let allLogs = localStorage.getItem('hypertrophyLogs');
+  if (!allLogs) { alert('No sessions to export!'); return; }
+  let blob = new Blob([allLogs], {type: 'application/json'});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = 'hypertrophy_workout_log.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Import log from JSON
+function importJSON() {
+  document.getElementById('importFile').click();
+}
+function handleFileImport(event) {
+  let file = event.target.files[0];
+  if (!file) return;
+  let reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let logs = JSON.parse(e.target.result);
+      if (!Array.isArray(logs)) throw 'Invalid format';
+      if (!confirm('Overwrite your current log with the imported file?')) return;
+      localStorage.setItem('hypertrophyLogs', JSON.stringify(logs));
+      renderLog();
+      alert('Log imported!');
+    } catch {
+      alert('Invalid file or format.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+renderLog();
+</script>
+</body>
+</html>
