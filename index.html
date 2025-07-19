@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Adolfo's Custom Workout Log</title>
+  <title>Hypertrophy Workout Log</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 15px; }
     h1 { color: #2d7d46; }
@@ -17,16 +17,7 @@
   </style>
 </head>
 <body>
-  <!-- Password Overlay -->
-  <div id="pwScreen" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;">
-    <h2>Enter Password</h2>
-    <input id="pwInput" type="password" placeholder="Password" autofocus>
-    <button onclick="checkPW()">Enter</button>
-    <div id="pwError" style="color:red;margin-top:8px"></div>
-  </div>
-
-  <!-- Main Content (hidden until password is correct) -->
-  <div id="mainContent" style="display:none;">
+  <div id="mainContent">
     <h1>Hypertrophy Workout Log</h1>
     <form id="logForm">
       <label>Date: <input type="date" id="date" required></label><br><br>
@@ -61,26 +52,6 @@
   </div>
 
 <script>
-  // --- PASSWORD LOGIC ---
-  const PASSWORD = "mySecret123"; // CHANGE THIS to your preferred password!
-  function checkPW() {
-    var v = document.getElementById('pwInput').value;
-    if (v === PASSWORD) {
-      document.getElementById('pwScreen').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      document.body.style.overflow = "auto";
-    } else {
-      document.getElementById('pwError').textContent = "Incorrect password";
-      document.getElementById('pwInput').value = '';
-      document.getElementById('pwInput').focus();
-    }
-  }
-  window.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('pwScreen').style.display = 'flex';
-    document.body.style.overflow = "hidden";
-    document.getElementById('mainContent').style.display = 'none';
-  });
-
   // --- WORKOUT LOGIC ---
   const program = {
     PushA: [
@@ -207,6 +178,7 @@
     }
   }
 
+  // EXPORT uses last session date in filename
   function exportJSON() {
     let allLogs = localStorage.getItem('hypertrophyLogs');
     if (!allLogs) { alert('No sessions to export!'); return; }
@@ -214,13 +186,11 @@
     if (!Array.isArray(logsArray) || logsArray.length === 0) {
       alert('No sessions to export!'); return;
     }
-    // Find the date of the latest session (assumes date is in 'YYYY-MM-DD' format)
     let lastSession = logsArray[logsArray.length - 1];
     let lastDate = lastSession.date || 'session';
-    // Sanitize the date for filenames (in case of non-standard format)
     let safeDate = lastDate.replace(/[^0-9\-]/g, '');
     let filename = `hypertrophy_workout_log_${safeDate}.json`;
-  
+
     let blob = new Blob([allLogs], {type: 'application/json'});
     let url = URL.createObjectURL(blob);
     let a = document.createElement('a');
@@ -231,7 +201,6 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
-
 
   function importJSON() {
     document.getElementById('importFile').click();
