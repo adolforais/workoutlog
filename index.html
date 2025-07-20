@@ -5,18 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adolfo's custom workout log</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 15px; }
-  h1 { color: #2d7d46; }
-  label, select, input { font-size: 1em; }
-  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-  th, td { border: 1px solid #bbb; padding: 6px; text-align: center; }
-  th { background: #f0f0f0; }
-  .hidden { display: none; }
-  .btn { margin: 10px 5px 10px 0; padding: 6px 16px; font-size: 1em; }
-  .small { font-size: 0.9em; color: #666; }
-
-  /* ---- Your background styles here ---- */
   body {
+    font-family: Arial, sans-serif;
+    margin: 15px;
     background-color: white; /* fallback */
     background-image: url('background.jpeg');
     background-repeat: no-repeat;
@@ -25,11 +16,72 @@
   }
 
   #mainContent {
-    background-color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(0, 0, 0, 0.5); /* black with 50% opacity */
     padding: 15px;
     border-radius: 8px;
+    color: white; /* base text color */
+  }
+
+  /* Change h1 color to white (was green) */
+  h1 {
+    color: white;
+  }
+
+  /* Style labels, selects, inputs */
+  label, select, input {
+    font-size: 1em;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1); /* subtle transparent background for inputs */
+    border: 1px solid #ccc;
+    border-radius: 3px;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+    color: white;
+  }
+
+  th, td {
+    border: 1px solid #bbb;
+    padding: 6px;
+    text-align: center;
+  }
+
+  th {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  /* Button styling */
+  .btn {
+    margin: 10px 5px 10px 0;
+    padding: 6px 16px;
+    font-size: 1em;
+    color: white;
+    background-color: rgba(45, 125, 70, 0.7); /* soft green */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn:hover {
+    background-color: rgba(45, 125, 70, 1);
+  }
+
+  /* Smaller text */
+  .small {
+    font-size: 0.9em;
+    color: #ccc;
+  }
+
+  /* Hide hidden elements */
+  .hidden {
+    display: none;
   }
 </style>
+
 
   <!-- Program and day names data -->
   <script src="workout_program.js"></script>
