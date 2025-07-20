@@ -71,7 +71,7 @@ function generateTable() {
   html += `</tr>`;
   exercises.forEach(ex => {
     html += `<tr><td>${ex.name}<br><span class='small'>${ex.sets[week]} × ${ex.reps[week]}</span></td>`;
-    html += `<td><input type='number' min='0' step='0.5' name='w_${ex.name}' placeholder='kg' required></td>`;
+    html += `<td><input type='number' min='0' max='999' step='0.5' name='w_${ex.name}' placeholder='kg' required></td>`;
     for (let s = 0; s < ex.sets[week]; ++s) {
       html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s+1}' placeholder='Reps' required></td>`;
     }
