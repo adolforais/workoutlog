@@ -5,122 +5,133 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Adolfo's workout log</title>
   <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 15px;
-    background-color: white; /* fallback */
-    background-image: url('background.jpg');
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center center;
-  }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 15px;
+      background-color: white; /* fallback */
+      background-image: url('background.jpg');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center center;
+    }
 
-  #mainContent {
-    background-color: rgba(255, 255, 255, 0.90); /* mostly white background */
-    padding: 15px;
-    border-radius: 8px;
-    color: black; /* black text */
-  }
+    #mainContent {
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 18px;
+      color: black;
+      max-width: 700px;
+      margin: auto;
+      box-shadow: 0 0 12px 2px #e3bc60;
+    }
 
-  h1 {
-    color: #4a7d23;
-  }
+    h1 {
+      color: #4a7d23;
+      margin-bottom: 18px;
+    }
 
-  label, select, input {
-    font-size: 1em;
-  }
+    label, select, input {
+      font-size: 1em;
+    }
 
-  /* Fix inputs/selects/date-picker styles */
-  input[type="date"],
-  select,
-  input[type="number"] {
-    background-color: #f9f9f9; /* light background */
-    color: black;              /* black text */
-    border: 1px solid #999;    /* subtle gray border */
-    border-radius: 4px;
-    padding: 4px 6px;
-    box-sizing: border-box;
-    outline: none;
-  }
+    input[type="date"],
+    select,
+    input[type="number"] {
+      background-color: #f9f9f9;
+      color: black;
+      border: 1px solid #999;
+      border-radius: 4px;
+      padding: 4px 6px;
+      box-sizing: border-box;
+      outline: none;
+    }
 
-  input[type="date"]:focus,
-  select:focus,
-  input[type="number"]:focus {
-    border-color: #4a90e2;    /* subtle blue border on focus */
-    box-shadow: 0 0 4px #4a90e2;
-  }
+    input[type="date"]:focus,
+    select:focus,
+    input[type="number"]:focus {
+      border-color: #4a90e2;
+      box-shadow: 0 0 4px #4a90e2;
+    }
 
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 10px;
-    color: black;
-    background-color: white;
-    border: 1px solid #ccc;
-  }
+    /* For table horizontal scrolling */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
 
-  th, td {
-    border: 1px solid #bbb;
-    padding: 6px;
-    text-align: center;
-    color: black;
-    background-color: white;
-  }
+    table {
+      min-width: 600px;
+      width: max-content;
+      max-width: none;
+      border-collapse: collapse;
+      margin-top: 10px;
+      color: black;
+      background-color: white;
+      border: 1px solid #ccc;
+    }
 
-  th {
-    background: #e0e0e0;
-  }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      text-align: center;
+      color: black;
+      background-color: white;
+      min-width: 100px;
+    }
 
-  .btn {
-    margin: 10px 5px 10px 0;
-    padding: 6px 16px;
-    font-size: 1em;
-    color: white;
-    background-color: #4a7d23; /* dark green */
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+    th {
+      background: #e0e0e0;
+    }
 
-  .btn:hover {
-    background-color: #3d661b;
-  }
+    .btn {
+      margin: 10px 5px 10px 0;
+      padding: 6px 16px;
+      font-size: 1em;
+      color: white;
+      background-color: #4a7d23;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-  .small {
-    font-size: 0.9em;
-    color: #666;
-  }
+    .btn:hover {
+      background-color: #3d661b;
+    }
 
-  .hidden {
-    display: none;
-  }
+    .small {
+      font-size: 0.9em;
+      color: #666;
+    }
 
-  /* Folding session logs */
-  .session-log {
-    border: 1px solid #bbb;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    overflow: hidden;
-    background-color: #f9f9f9;
-    color: black;
-  }
+    .hidden {
+      display: none;
+    }
 
-  .session-header {
-    background-color: #e0e0e0;
-    padding: 8px 12px;
-    cursor: pointer;
-    user-select: none;
-    font-weight: bold;
-    color: black;
-  }
+    /* Folding session logs */
+    .session-log {
+      border: 1px solid #bbb;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #f9f9f9;
+      color: black;
+    }
 
-  .session-content {
-    display: none;
-    padding: 10px 12px;
-    background-color: #fff;
-  }
-</style>
+    .session-header {
+      background-color: #e0e0e0;
+      padding: 8px 12px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      color: black;
+    }
 
+    .session-content {
+      display: none;
+      padding: 10px 12px;
+      background-color: #fff;
+    }
+  </style>
   <script src="workout_program.js"></script>
 </head>
 <body>
@@ -166,7 +177,7 @@
     function generateTable() {
       const dateInput = document.getElementById('date');
       if (!dateInput.value) {
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const today = new Date().toISOString().slice(0, 10);
         dateInput.value = today;
       }
 
@@ -179,7 +190,7 @@
         week + 1
       }</h3>`;
       html += `<form id='sessionForm' onsubmit='saveSession(event)'>`;
-      html += `<table><tr><th>Exercise</th><th>Weight</th>`;
+      html += `<div class="table-wrapper"><table><tr><th>Exercise</th><th>Weight</th>`;
 
       let maxSets = Math.max(...exercises.map((e) => e.sets[week]));
       for (let s = 1; s <= maxSets; ++s)
@@ -195,7 +206,7 @@
         for (let s = ex.sets[week]; s < maxSets; ++s) html += `<td class='hidden'></td>`;
         html += `</tr>`;
       });
-      html += `</table><br>`;
+      html += `</table></div><br>`;
       html += `<button type='submit' class='btn'>Save Session</button></form>`;
       sessionDiv.innerHTML = html;
     }
@@ -222,7 +233,6 @@
       renderLog();
     }
 
-    // Folding session logs
     function toggleSession(id) {
       const el = document.getElementById(id);
       if (el.style.display === 'block') {
@@ -247,7 +257,7 @@
 
         html += `<div class="session-log">`;
         html += `<div class="session-header" onclick="toggleSession('${contentId}')">${headerText}</div>`;
-        html += `<div class="session-content" id="${contentId}"><table><tr><th>Exercise</th><th>Weight</th>`;
+        html += `<div class="session-content" id="${contentId}"><div class="table-wrapper"><table><tr><th>Exercise</th><th>Weight</th>`;
 
         let sets = e.log.map((x) => x.reps.length);
         let maxSets = Math.max(...sets);
@@ -260,7 +270,7 @@
           for (let s = ex.reps.length; s < maxSets; ++s) html += `<td></td>`;
           html += `</tr>`;
         });
-        html += `</table></div></div>`;
+        html += `</table></div></div></div>`;
       });
 
       out.innerHTML = html;
@@ -322,7 +332,6 @@
       reader.readAsText(file);
     }
 
-    // On load, initialize
     document.addEventListener('DOMContentLoaded', function () {
       renderDayOptions();
       renderLog();
