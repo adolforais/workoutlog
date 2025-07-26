@@ -131,6 +131,41 @@
       padding: 10px 12px;
       background-color: #fff;
     }
+
+        /* Styling for the new analysis link and its container */
+    .log-header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 25px; /* Adds some space above the log section */
+      margin-bottom: 10px;
+    }
+
+    /* We remove the default margin from h2 since the container handles it */
+    #mainContent h2 {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .analysis-link {
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.9em;
+      color: #4a7d23;
+      padding: 8px 12px;
+      border: 1px solid #c0e0ac;
+      border-radius: 6px;
+      background-color: #f4f9f1;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .analysis-link:hover {
+      background-color: #4a7d23;
+      border-color: #4a7d23;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
   </style>
   <script src="workout_program.js"></script>
 </head>
@@ -154,7 +189,13 @@
     </form>
     <div id="session"></div>
     <hr />
-    <h2>Session Log</h2>
+    
+        <!-- New section for the log header -->
+    <div class="log-header-container">
+      <h2>Session Log</h2>
+      <a href="analysis.html" class="analysis-link">View Performance Analysis →</a>
+    </div>
+
     <div id="log"></div>
     <button onclick="clearLog()" class="btn">Clear All Logs</button>
     <button onclick="exportJSON()" class="btn">Export Log (JSON)</button>
@@ -211,6 +252,7 @@
       sessionDiv.innerHTML = html;
     }
 
+    
     function saveSession(event) {
       event.preventDefault();
       const date = document.getElementById('date').value;
