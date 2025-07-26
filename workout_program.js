@@ -1,12 +1,12 @@
 // program.js
 
 const programDays = {
-  PushA: "Push A (chest, front delts, triceps)",
-  PullA: "Pull A (lats, upper back, biceps)",
-  LowerA: "Lower A (quad dominant)",
-  PushB: "Push B (chest, side delts, triceps)",
-  PullB: "Pull B (upper-back thickness, arms)",
-  LowerB: "Lower B (posterior-chain bias)"
+  PushA: "Push A",
+  PullA: "Pull A",
+  LowerA: "Lower A",
+  PushB: "Push B",
+  PullB: "Pull B",
+  LowerB: "Lower B"
 };
 
 const program = {
