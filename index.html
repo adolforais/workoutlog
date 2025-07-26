@@ -16,7 +16,7 @@
   }
 
   #mainContent {
-    background-color: rgba(255, 255, 255, 0.95); /* mostly white background */
+    background-color: rgba(255, 255, 255, 0.90); /* mostly white background */
     padding: 15px;
     border-radius: 8px;
     color: black; /* black text */
@@ -287,7 +287,7 @@
       let lastSession = logsArray[logsArray.length - 1];
       let lastDate = lastSession.date || 'session';
       let safeDate = lastDate.replace(/[^0-9\-]/g, '');
-      let filename = `hypertrophy_workout_log_${safeDate}.json`;
+      let filename = `log_${safeDate}.json`;
 
       let blob = new Blob([allLogs], { type: 'application/json' });
       let url = URL.createObjectURL(blob);
