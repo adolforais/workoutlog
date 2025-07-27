@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Adolfo's Performance Analysis</title>
-  <!-- Copied styling directly from index.html for consistency -->
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -31,9 +30,36 @@
       margin-bottom: 18px;
     }
 
-    a {
-      color: #4a7d23;
+    /* --- New Styles for Collapsible Groups --- */
+    .group-container {
+      border: 1px solid #bbb;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #f9f9f9;
     }
+
+    .group-header {
+      background-color: #e0e0e0;
+      padding: 10px 15px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      font-size: 1.1em;
+      color: black;
+    }
+    
+    .group-header:hover {
+        background-color: #d0d0d0;
+    }
+
+    .group-content {
+      display: none; /* Initially collapsed */
+      padding: 15px;
+      background-color: #fff;
+    }
+    /* --- End New Styles --- */
+
 
     .analysis-card {
       border: 1px solid #ccc;
@@ -42,6 +68,11 @@
       margin-bottom: 15px;
       padding: 12px;
       background-color: #fdfdfd;
+    }
+    
+    /* Remove bottom margin from the last card in a group */
+    .analysis-card:last-child {
+        margin-bottom: 0;
     }
     
     .analysis-card h3 {
@@ -68,51 +99,41 @@
       border-radius: 4px;
     }
 
-    .rec-reduce {
-      color: #d0021b;
-      background-color: #fdeaea;
-    }
-
-    .rec-increase {
-      color: #a06c00;
-      background-color: #fff8e1;
-    }
-
-    .rec-maintain {
-      color: #3b2a87;
-      background-color: #f0f3ff;
-    }
-    
-    .rec-deload {
-      color: #005a9c;
-      background-color: #eaf6ff;
-    }
+    .rec-reduce { color: #d0021b; background-color: #fdeaea; }
+    .rec-increase { color: #a06c00; background-color: #fff8e1; }
+    .rec-maintain { color: #3b2a87; background-color: #f0f3ff; }
+    .rec-deload { color: #005a9c; background-color: #eaf6ff; }
   </style>
-  <!-- The program data is required for the analysis -->
   <script src="workout_program.js"></script>
 </head>
 <body>
   <div id="mainContent">
     <h1>Full Performance Analysis</h1>
-    <p><a href="index.html">← Back to Workout Logger</a></p>
-    <hr />
+    <!-- The "back" link has been removed as requested -->
     <div id="analysisReport">
       <!-- The generated report will be injected here by the script -->
     </div>
   </div>
 
   <script>
-    // This is the JavaScript version of the Python analysis script
+    // --- New function to handle collapsing/expanding groups ---
+    function toggleGroup(contentId) {
+      const el = document.getElementById(contentId);
+      if (el.style.display === 'block') {
+        el.style.display = 'none';
+      } else {
+        el.style.display = 'block';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       
-      const rirTargets = ["2-3", "2", "1", "3-4"]; // RIR targets from the guide
+      const rirTargets = ["2-3", "2", "1", "3-4"];
 
+      // This function remains the same, it creates a single analysis card
       function getAnalysisForExerciseHTML(exerciseName, allLogs) {
-        // Find the exercise definition in the program object
         const exDetails = (Object.values(program).flat()).find(e => e.name === exerciseName);
-        if (!exDetails) return ''; // Skip if exercise not in program
-
-        // Find the most recent log for this specific exercise
+        if (!exDetails) return '';
         let lastSession = null;
         for (let i = allLogs.length - 1; i >= 0; i--) {
             const foundEx = allLogs[i].log.find(l => l.name === exerciseName);
@@ -126,30 +147,21 @@
                 break;
             }
         }
-        
-        // This should not happen if we are iterating through logged exercises, but good practice
         if (!lastSession) return '';
-
         const weekIdx = lastSession.week - 1;
         const targetRepsStr = exDetails.reps[weekIdx];
         const targetSets = exDetails.sets[weekIdx];
-        
         let recommendationHTML = '';
-
         const nextWeek = lastSession.week >= 4 ? 1 : lastSession.week + 1;
 
         if (nextWeek === 4 && lastSession.week === 3) {
-            // Recommendation for upcoming deload week
             recommendationHTML = `<span class="recommendation rec-deload">ACTION: DELOAD WEEK. Use ${lastSession.weight} kg, reduce effort to RIR 3-4, and focus on perfect form.</span>`;
         } else {
-            // Standard progression logic
             const repRangeParts = targetRepsStr.split('-');
             const minOfRepRange = parseInt(repRangeParts[0]);
             const topOfRepRange = parseInt(repRangeParts.pop());
-
             const failedToMeetMinimum = lastSession.reps.some(r => r < minOfRepRange);
             const achievedTopReps = lastSession.reps.length > 0 && lastSession.reps.every(r => r >= topOfRepRange);
-
             if (failedToMeetMinimum) {
                 const newWeight = (lastSession.weight * 0.9).toFixed(1);
                 recommendationHTML = `<span class="recommendation rec-reduce">ACTION: Reduce weight. You fell below the target rep range. Try ~${newWeight} kg next time.</span>`;
@@ -160,8 +172,6 @@
                 recommendationHTML = `<span class="recommendation rec-maintain">ACTION: Keep weight the same. Your goal is to beat ${lastSession.reps.join(', ')} reps.</span>`;
             }
         }
-        
-        // Build the complete HTML card for this exercise
         return `
           <div class="analysis-card">
             <h3>${exerciseName}</h3>
@@ -172,31 +182,73 @@
         `;
       }
 
+      // --- Major update to this function to handle grouping ---
       function generateFullReport() {
         const reportDiv = document.getElementById('analysisReport');
         const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
 
         if (allLogs.length === 0) {
-          reportDiv.innerHTML = '<p><i>No logs found. Go to the logger and save a session first!</i></p>';
+          reportDiv.innerHTML = '<p><i>No logs found. Go to the main page and save a session first!</i></p>';
           return;
         }
 
-        const uniqueExercises = new Set();
+        // 1. Create a mapping of exercise names to their workout day (e.g., "PushA")
+        const exerciseToDayMap = new Map();
+        for (const dayKey in program) {
+            program[dayKey].forEach(ex => {
+                exerciseToDayMap.set(ex.name, dayKey);
+            });
+        }
+
+        // 2. Group the logged exercises by workout day
+        const groupedExercises = {};
         allLogs.forEach(session => {
-          session.log.forEach(exercise => uniqueExercises.add(exercise.name));
+            session.log.forEach(exercise => {
+                const dayKey = exerciseToDayMap.get(exercise.name);
+                if (dayKey) {
+                    if (!groupedExercises[dayKey]) {
+                        groupedExercises[dayKey] = new Set();
+                    }
+                    groupedExercises[dayKey].add(exercise.name);
+                }
+            });
         });
         
-        const sortedExercises = Array.from(uniqueExercises).sort();
-
         let fullReportHTML = '';
-        sortedExercises.forEach(exName => {
-          fullReportHTML += getAnalysisForExerciseHTML(exName, allLogs);
-        });
+        
+        // 3. Generate the HTML, iterating through the program days to maintain order
+        for (const dayKey of Object.keys(programDays)) {
+            const exercisesForDay = groupedExercises[dayKey];
+            if (!exercisesForDay || exercisesForDay.size === 0) {
+                continue; // Skip days with no logged exercises
+            }
 
+            const contentId = `groupContent_${dayKey}`;
+            
+            fullReportHTML += `
+              <div class="group-container">
+                <div class="group-header" onclick="toggleGroup('${contentId}')">
+                  ${programDays[dayKey]}
+                </div>
+                <div class="group-content" id="${contentId}">
+            `;
+
+            // Sort exercises alphabetically within each group
+            const sortedExercises = Array.from(exercisesForDay).sort();
+            
+            sortedExercises.forEach(exName => {
+                fullReportHTML += getAnalysisForExerciseHTML(exName, allLogs);
+            });
+
+            fullReportHTML += `
+                </div>
+              </div>
+            `;
+        }
+        
         reportDiv.innerHTML = fullReportHTML;
       }
       
-      // Run the report generation when the page loads
       generateFullReport();
     });
   </script>
