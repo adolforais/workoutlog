@@ -135,6 +135,26 @@
         return Math.round((x || 0) / s) * s;
       }
 
+      function findBaselineSession(exerciseName, allLogs) {
+        // Find the most recent HEAVY week for this exercise, prefer Week 3, else 2, else 1
+        const preferredWeeks = [3, 2, 1];
+        for (let i = allLogs.length - 1; i >= 0; i--) {
+          const entry = allLogs[i];
+          const foundEx = entry.log && entry.log.find(l => l.name === exerciseName);
+          if (!foundEx) continue;
+          const w = parseInt(entry.week);
+          if (preferredWeeks.includes(w)) {
+            return {
+              date: entry.date,
+              week: w,
+              weight: parseFloat(foundEx.weight),
+              reps: foundEx.reps.map(r => parseInt(r))
+            };
+          }
+        }
+        return null;
+      }
+
       // Returns [lowKg, highKg, noteText]
       function deloadRangeFor(exName, lastWeight) {
         const type = classifyExercise(exName);
@@ -178,25 +198,39 @@
         const nextWeek = lastSession.week >= 4 ? 1 : lastSession.week + 1;
 
         if (nextWeek === 4 && lastSession.week === 3) {
-          // Use deload rules
+          // Deload rules only when moving from Week 3 to Week 4
           const [lowKg, highKg, note, type] = deloadRangeFor(exerciseName, lastSession.weight);
-          const nextWeekIdx = nextWeek - 1;
-          const nextSets = exDetails.sets[nextWeekIdx];
-          const nextRepsStr = exDetails.reps[nextWeekIdx];
-
           let extra = '';
-          const n = exerciseName.toLowerCase();
-          if (n.includes('pull-up') || n.includes('pull up') || n.includes('pullup') || n.includes('chin')) {
+          const n2 = exerciseName.toLowerCase();
+          if (n2.includes('pull-up') || n2.includes('pull up') || n2.includes('pullup') || n2.includes('chin')) {
             extra = '';
           }
-
           recommendationHTML = `<span class="recommendation rec-deload">
             ACTION: DELOAD WEEK. Use about ${lowKg.toFixed(1)} to ${highKg.toFixed(1)} kg (${note}).
             Do the low end of the rep range at RIR 3 to 4, and focus on perfect form.
             ${extra}
           </span>`;
+        } else if (lastSession.week === 4 && nextWeek === 1) {
+          // New cycle start, base on the last heavy week, not the deload
+          const baseline = findBaselineSession(exerciseName, allLogs) || lastSession;
+          const repRangeParts = String(exDetails.reps[(baseline.week - 1)]).split('-');
+          const minOfRepRange = parseInt(repRangeParts[0]);
+          const topOfRepRange = parseInt(repRangeParts.pop());
+          const failedToMeetMinimum = baseline.reps.some(r => r < minOfRepRange);
+          const achievedTopReps = baseline.reps.length > 0 && baseline.reps.every(r => r >= topOfRepRange);
+
+          if (failedToMeetMinimum) {
+            const newWeight = (baseline.weight * 0.9).toFixed(1);
+            recommendationHTML = `<span class="recommendation rec-reduce">ACTION: New cycle, Week 1. Start around ${newWeight} kg. Reset slightly and build back up.</span>`;
+          } else if (achievedTopReps) {
+            const newWeight = (baseline.weight + 2.5).toFixed(1);
+            recommendationHTML = `<span class="recommendation rec-increase">ACTION: New cycle, Week 1. Nudge up to about ${newWeight} kg. Keep RIR 2 to 3.</span>`;
+          } else {
+            const newWeight = baseline.weight.toFixed(1);
+            recommendationHTML = `<span class="recommendation rec-maintain">ACTION: New cycle, Week 1. Start about ${newWeight} kg. Keep RIR 2 to 3 and aim to beat your Week ${baseline.week} reps.</span>`;
+          }
         } else {
-          // Normal progression logic
+          // Normal progression within the cycle
           const repRangeParts = String(targetRepsStr).split('-');
           const minOfRepRange = parseInt(repRangeParts[0]);
           const topOfRepRange = parseInt(repRangeParts.pop());
