@@ -30,7 +30,7 @@
       margin-bottom: 18px;
     }
 
-    /* --- New Styles for Collapsible Groups --- */
+    /* --- Collapsible Groups --- */
     .group-container {
       border: 1px solid #bbb;
       margin-bottom: 12px;
@@ -58,8 +58,6 @@
       padding: 15px;
       background-color: #fff;
     }
-    /* --- End New Styles --- */
-
 
     .analysis-card {
       border: 1px solid #ccc;
@@ -70,10 +68,7 @@
       background-color: #fdfdfd;
     }
     
-    /* Remove bottom margin from the last card in a group */
-    .analysis-card:last-child {
-        margin-bottom: 0;
-    }
+    .analysis-card:last-child { margin-bottom: 0; }
     
     .analysis-card h3 {
       margin-top: 0;
@@ -86,9 +81,7 @@
       line-height: 1.4;
     }
     
-    .analysis-card strong {
-        color: #3b2a87;
-    }
+    .analysis-card strong { color: #3b2a87; }
 
     .recommendation {
       font-weight: bold;
@@ -109,45 +102,75 @@
 <body>
   <div id="mainContent">
     <h1>Full Performance Analysis</h1>
-    <!-- The "back" link has been removed as requested -->
-    <div id="analysisReport">
-      <!-- The generated report will be injected here by the script -->
-    </div>
+    <div id="analysisReport"></div>
   </div>
 
   <script>
-    // --- New function to handle collapsing/expanding groups ---
+    // Collapsing groups
     function toggleGroup(contentId) {
       const el = document.getElementById(contentId);
-      if (el.style.display === 'block') {
-        el.style.display = 'none';
-      } else {
-        el.style.display = 'block';
-      }
+      el.style.display = (el.style.display === 'block') ? 'none' : 'block';
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-      
       const rirTargets = ["2-3", "2", "1", "3-4"];
 
-      // This function remains the same, it creates a single analysis card
+      // Classify exercise for deload rules
+      function classifyExercise(name) {
+        const n = String(name || '').toLowerCase();
+        if (n.includes('deadlift')) return 'deadlift';
+        const compoundKeys = [
+          'squat','bench','press','row','pull-up','pull up','pullup',
+          'chin-up','chin up','dip','lunge','rdl','hip thrust','good morning',
+          'clean','snatch','front squat','overhead press','ohp'
+        ];
+        for (const k of compoundKeys) {
+          if (n.includes(k)) return 'compound';
+        }
+        return 'isolation';
+      }
+
+      function roundToStep(x, step) {
+        const s = step || 0.5;
+        return Math.round((x || 0) / s) * s;
+      }
+
+      // Returns [lowKg, highKg, noteText]
+      function deloadRangeFor(exName, lastWeight) {
+        const type = classifyExercise(exName);
+        let lowPct, highPct, note;
+        if (type === 'deadlift') {
+          lowPct = 0.85; highPct = 0.90; note = '10 to 15 percent lighter';
+        } else if (type === 'compound') {
+          lowPct = 0.90; highPct = 0.95; note = '5 to 10 percent lighter';
+        } else {
+          lowPct = 0.95; highPct = 1.00; note = '0 to 5 percent lighter';
+        }
+        const low = roundToStep(lastWeight * lowPct, 0.5);
+        const high = roundToStep(lastWeight * highPct, 0.5);
+        return [low, high, note, type];
+      }
+
       function getAnalysisForExerciseHTML(exerciseName, allLogs) {
         const exDetails = (Object.values(program).flat()).find(e => e.name === exerciseName);
         if (!exDetails) return '';
+
+        // Find the most recent logged session for this exercise
         let lastSession = null;
         for (let i = allLogs.length - 1; i >= 0; i--) {
-            const foundEx = allLogs[i].log.find(l => l.name === exerciseName);
-            if (foundEx) {
-                lastSession = {
-                    date: allLogs[i].date,
-                    week: parseInt(allLogs[i].week),
-                    weight: parseFloat(foundEx.weight),
-                    reps: foundEx.reps.map(r => parseInt(r))
-                };
-                break;
-            }
+          const foundEx = allLogs[i].log.find(l => l.name === exerciseName);
+          if (foundEx) {
+            lastSession = {
+              date: allLogs[i].date,
+              week: parseInt(allLogs[i].week),
+              weight: parseFloat(foundEx.weight),
+              reps: foundEx.reps.map(r => parseInt(r))
+            };
+            break;
+          }
         }
         if (!lastSession) return '';
+
         const weekIdx = lastSession.week - 1;
         const targetRepsStr = exDetails.reps[weekIdx];
         const targetSets = exDetails.sets[weekIdx];
@@ -155,95 +178,109 @@
         const nextWeek = lastSession.week >= 4 ? 1 : lastSession.week + 1;
 
         if (nextWeek === 4 && lastSession.week === 3) {
-            recommendationHTML = `<span class="recommendation rec-deload">ACTION: DELOAD WEEK. Use ${lastSession.weight} kg, reduce effort to RIR 3-4, and focus on perfect form.</span>`;
+          // Use deload rules
+          const [lowKg, highKg, note, type] = deloadRangeFor(exerciseName, lastSession.weight);
+          const nextWeekIdx = nextWeek - 1;
+          const nextSets = exDetails.sets[nextWeekIdx];
+          const nextRepsStr = exDetails.reps[nextWeekIdx];
+
+          let extra = '';
+          const n = exerciseName.toLowerCase();
+          if (n.includes('pull-up') || n.includes('pull up') || n.includes('pullup') || n.includes('chin')) {
+            extra = '';
+          }
+
+          recommendationHTML = `<span class="recommendation rec-deload">
+            ACTION: DELOAD WEEK. Use about ${lowKg.toFixed(1)} to ${highKg.toFixed(1)} kg (${note}).
+            Do the low end of the rep range at RIR 3 to 4, and focus on perfect form.
+            ${extra}
+          </span>`;
         } else {
-            const repRangeParts = targetRepsStr.split('-');
-            const minOfRepRange = parseInt(repRangeParts[0]);
-            const topOfRepRange = parseInt(repRangeParts.pop());
-            const failedToMeetMinimum = lastSession.reps.some(r => r < minOfRepRange);
-            const achievedTopReps = lastSession.reps.length > 0 && lastSession.reps.every(r => r >= topOfRepRange);
-            if (failedToMeetMinimum) {
-                const newWeight = (lastSession.weight * 0.9).toFixed(1);
-                recommendationHTML = `<span class="recommendation rec-reduce">ACTION: Reduce weight. You fell below the target rep range. Try ~${newWeight} kg next time.</span>`;
-            } else if (achievedTopReps) {
-                const newWeight = lastSession.weight + 2.5;
-                recommendationHTML = `<span class="recommendation rec-increase">ACTION: Increase weight! You hit the top of the rep range. Try ~${newWeight} kg.</span>`;
-            } else {
-                recommendationHTML = `<span class="recommendation rec-maintain">ACTION: Keep weight the same. Your goal is to beat ${lastSession.reps.join(', ')} reps.</span>`;
-            }
+          // Normal progression logic
+          const repRangeParts = String(targetRepsStr).split('-');
+          const minOfRepRange = parseInt(repRangeParts[0]);
+          const topOfRepRange = parseInt(repRangeParts.pop());
+          const failedToMeetMinimum = lastSession.reps.some(r => r < minOfRepRange);
+          const achievedTopReps = lastSession.reps.length > 0 && lastSession.reps.every(r => r >= topOfRepRange);
+
+          if (failedToMeetMinimum) {
+            const newWeight = (lastSession.weight * 0.9).toFixed(1);
+            recommendationHTML = `<span class="recommendation rec-reduce">ACTION: Reduce weight. You fell below the target rep range. Try about ${newWeight} kg next time.</span>`;
+          } else if (achievedTopReps) {
+            const newWeight = (lastSession.weight + 2.5).toFixed(1);
+            recommendationHTML = `<span class="recommendation rec-increase">ACTION: Increase weight. You hit the top of the rep range. Try about ${newWeight} kg.</span>`;
+          } else {
+            recommendationHTML = `<span class="recommendation rec-maintain">ACTION: Keep weight the same. Your goal is to beat ${lastSession.reps.join(', ')} reps.</span>`;
+          }
         }
+
         return `
           <div class="analysis-card">
             <h3>${exerciseName}</h3>
-            <p><strong>Last Session (Week ${lastSession.week}):</strong> ${lastSession.weight} kg for <strong>${lastSession.reps.join(', ')}</strong> reps.</p>
-            <p><em>Program Target Was: ${targetSets} sets of ${targetRepsStr} reps @ RIR ${rirTargets[weekIdx]}</em></p>
+            <p><strong>Last Session Week ${lastSession.week}:</strong> ${lastSession.weight} kg for <strong>${lastSession.reps.join(', ')}</strong> reps.</p>
+            <p><em>Program target was: ${targetSets} sets of ${targetRepsStr} reps at RIR ${rirTargets[weekIdx]}</em></p>
             ${recommendationHTML}
           </div>
         `;
       }
 
-      // --- Major update to this function to handle grouping ---
       function generateFullReport() {
         const reportDiv = document.getElementById('analysisReport');
         const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
 
         if (allLogs.length === 0) {
-          reportDiv.innerHTML = '<p><i>No logs found. Go to the main page and save a session first!</i></p>';
+          reportDiv.innerHTML = '<p><i>No logs found. Go to the main page and save a session first.</i></p>';
           return;
         }
 
-        // 1. Create a mapping of exercise names to their workout day (e.g., "PushA")
+        // Map exercise to day key
         const exerciseToDayMap = new Map();
         for (const dayKey in program) {
-            program[dayKey].forEach(ex => {
-                exerciseToDayMap.set(ex.name, dayKey);
-            });
+          program[dayKey].forEach(ex => {
+            exerciseToDayMap.set(ex.name, dayKey);
+          });
         }
 
-        // 2. Group the logged exercises by workout day
+        // Group logged exercises by workout day
         const groupedExercises = {};
         allLogs.forEach(session => {
-            session.log.forEach(exercise => {
-                const dayKey = exerciseToDayMap.get(exercise.name);
-                if (dayKey) {
-                    if (!groupedExercises[dayKey]) {
-                        groupedExercises[dayKey] = new Set();
-                    }
-                    groupedExercises[dayKey].add(exercise.name);
-                }
-            });
+          session.log.forEach(exercise => {
+            const dayKey = exerciseToDayMap.get(exercise.name);
+            if (dayKey) {
+              if (!groupedExercises[dayKey]) groupedExercises[dayKey] = new Set();
+              groupedExercises[dayKey].add(exercise.name);
+            }
+          });
         });
         
         let fullReportHTML = '';
         
-        // 3. Generate the HTML, iterating through the program days to maintain order
+        // Maintain program day order
         for (const dayKey of Object.keys(programDays)) {
-            const exercisesForDay = groupedExercises[dayKey];
-            if (!exercisesForDay || exercisesForDay.size === 0) {
-                continue; // Skip days with no logged exercises
-            }
+          const exercisesForDay = groupedExercises[dayKey];
+          if (!exercisesForDay || exercisesForDay.size === 0) continue;
 
-            const contentId = `groupContent_${dayKey}`;
-            
-            fullReportHTML += `
-              <div class="group-container">
-                <div class="group-header" onclick="toggleGroup('${contentId}')">
-                  ${programDays[dayKey]}
-                </div>
-                <div class="group-content" id="${contentId}">
-            `;
-
-            // Sort exercises alphabetically within each group
-            const sortedExercises = Array.from(exercisesForDay).sort();
-            
-            sortedExercises.forEach(exName => {
-                fullReportHTML += getAnalysisForExerciseHTML(exName, allLogs);
-            });
-
-            fullReportHTML += `
-                </div>
+          const contentId = `groupContent_${dayKey}`;
+          fullReportHTML += `
+            <div class="group-container">
+              <div class="group-header" onclick="toggleGroup('${contentId}')">
+                ${programDays[dayKey]}
               </div>
-            `;
+              <div class="group-content" id="${contentId}">
+          `;
+
+          const orderedExercises = program[dayKey]
+            .map(ex => ex.name)
+            .filter(exName => exercisesForDay.has(exName));
+
+          orderedExercises.forEach(exName => {
+            fullReportHTML += getAnalysisForExerciseHTML(exName, allLogs);
+          });
+
+          fullReportHTML += `
+              </div>
+            </div>
+          `;
         }
         
         reportDiv.innerHTML = fullReportHTML;
