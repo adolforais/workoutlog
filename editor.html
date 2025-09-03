@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cache / JSON Editor</title>
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --panel: #111827; /* gray-900 */
+      --muted: #94a3b8; /* slate-400 */
+      --text: #e5e7eb; /* gray-200 */
+      --accent: #22c55e; /* green-500 */
+      --danger: #ef4444; /* red-500 */
+      --warn: #f59e0b; /* amber-500 */
+      --border: #1f2937; /* gray-800 */
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+    }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0));
+      position: sticky; top: 0; z-index: 10;
+    }
+    header h1 { font-size: 16px; margin: 0; letter-spacing: 0.2px; }
+    header .spacer { flex: 1; }
+    .btn {
+      padding: 8px 12px; border: 1px solid var(--border);
+      background: #0b1324; color: var(--text); border-radius: 8px;
+      cursor: pointer; transition: transform .05s ease, background .15s ease, border-color .15s ease;
+      user-select: none;
+    }
+    .btn:hover { background: #0e1a32; }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { border-color: rgba(34,197,94,0.35); }
+    .btn.danger { border-color: rgba(239,68,68,0.35); }
+    .btn.warn { border-color: rgba(245,158,11,0.35); }
+
+    .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100% - 56px); }
+    aside {
+      border-right: 1px solid var(--border); background: var(--panel);
+      height: 100%; overflow: auto;
+    }
+    .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; border-bottom: 1px solid var(--border); }
+    .search { padding: 12px; border-bottom: 1px solid var(--border); }
+    .search input {
+      width: 100%; padding: 10px 12px; background: #0b1324; border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    }
+    .keys { padding: 6px; }
+    .key { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 8px; border-radius: 8px; cursor: pointer; }
+    .key:hover { background: rgba(255,255,255,0.04); }
+    .key.active { outline: 1px solid rgba(255,255,255,0.08); background: rgba(34,197,94,0.05); }
+    .key small { color: var(--muted); }
+
+    main { height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+    .editor-toolbar { display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid var(--border); background: var(--panel); align-items: center; }
+    .editor-toolbar .status { margin-left: auto; font-size: 12px; color: var(--muted); }
+    .editor-wrap { height: 100%; display: grid; grid-template-columns: 1fr; }
+    textarea {
+      width: 100%; height: 100%; resize: none; border: none; outline: none; padding: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; background: #0a0f1f; color: #e2e8f0;
+    }
+    .footer { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--panel); color: var(--muted); }
+    .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); background: #0b1324; color: var(--muted); }
+    .error { color: var(--danger); }
+    .ok { color: var(--accent); }
+    .hint { color: var(--muted); font-size: 12px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0b1324; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cache and JSON editor</h1>
+    <div class="spacer"></div>
+    <button class="btn" id="btnExportAll">Export all</button>
+    <button class="btn" id="btnImport">Import file</button>
+    <input id="fileInput" type="file" accept="application/json" style="display:none" />
+  </header>
+
+  <div class="layout">
+    <aside>
+      <div class="tools">
+        <button class="btn" id="btnRefresh">Refresh</button>
+        <button class="btn" id="btnNewKey">New key</button>
+        <button class="btn warn" id="btnClone">Clone key</button>
+        <button class="btn danger" id="btnDelete">Delete key</button>
+      </div>
+      <div class="search">
+        <input id="filter" placeholder="Filter keys, try: history, logs, workout, cache" />
+      </div>
+      <div class="keys" id="keys"></div>
+    </aside>
+
+    <main>
+      <div class="editor-toolbar">
+        <button class="btn primary" id="btnSave">Save (Ctrl+S)</button>
+        <button class="btn" id="btnFormat">Format JSON</button>
+        <button class="btn" id="btnMinify">Minify</button>
+        <button class="btn" id="btnCopy">Copy</button>
+        <button class="btn" id="btnDownload">Download</button>
+        <label style="margin-left:12px"><input type="checkbox" id="autoSave" /> Auto save</label>
+        <div class="status" id="status">No key selected</div>
+      </div>
+      <div class="editor-wrap">
+        <textarea id="editor" placeholder="Pick a key on the left. JSON will appear here."></textarea>
+      </div>
+      <div class="footer">
+        <span id="info" class="pill">0 bytes</span>
+        <span id="validation" class="pill">Validation: <span id="validationMsg" class="hint">n/a</span></span>
+        <span class="hint">Tip: works on localStorage. If your app stores history in another place, map or copy it here.</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Utility: bytes length for UTF-8
+    function byteLength(str){
+      return new Blob([str]).size;
+    }
+
+    const els = {
+      keys: document.getElementById('keys'),
+      filter: document.getElementById('filter'),
+      editor: document.getElementById('editor'),
+      status: document.getElementById('status'),
+      info: document.getElementById('info'),
+      validationMsg: document.getElementById('validationMsg'),
+      autoSave: document.getElementById('autoSave'),
+      fileInput: document.getElementById('fileInput')
+    };
+
+    let currentKey = null;
+    let lastSavedValue = '';
+
+    function listKeys(){
+      const q = (els.filter.value || '').toLowerCase();
+      const out = [];
+      for(let i=0;i<localStorage.length;i++){
+        const key = localStorage.key(i);
+        if(!q || key.toLowerCase().includes(q)){
+          const val = localStorage.getItem(key) ?? '';
+          const size = byteLength(val);
+          out.push({key, size});
+        }
+      }
+      out.sort((a,b)=> a.key.localeCompare(b.key));
+      els.keys.innerHTML = out.map(({key,size}) => `
+        <div class="key ${key===currentKey?'active':''}" data-key="${encodeURIComponent(key)}">
+          <div>
+            <div>${key}</div>
+            <small>${size.toLocaleString()} bytes</small>
+          </div>
+          <div>
+            <button class="btn" data-action="export" data-key="${encodeURIComponent(key)}">Export</button>
+          </div>
+        </div>
+      `).join('') || '<div class="hint" style="padding:12px">No keys found</div>';
+    }
+
+    function selectKey(key){
+      currentKey = key;
+      const raw = localStorage.getItem(key) ?? '';
+      lastSavedValue = raw;
+      els.editor.value = raw;
+      els.status.textContent = `Editing: ${key}`;
+      updateStats();
+      validateJSON();
+      listKeys();
+    }
+
+    function updateStats(){
+      const bytes = byteLength(els.editor.value);
+      els.info.textContent = `${bytes.toLocaleString()} bytes`;
+    }
+
+    function validateJSON(){
+      try{
+        if(!els.editor.value.trim()){
+          els.validationMsg.textContent = 'empty';
+          els.validationMsg.className = 'hint';
+          return false;
+        }
+        JSON.parse(els.editor.value);
+        els.validationMsg.textContent = 'valid JSON';
+        els.validationMsg.className = 'ok';
+        return true;
+      }catch(err){
+        els.validationMsg.textContent = 'invalid JSON';
+        els.validationMsg.className = 'error';
+        return false;
+      }
+    }
+
+    function save(){
+      if(!currentKey){ alert('Pick a key first'); return; }
+      const val = els.editor.value;
+      // Save even if invalid, since some values are plain strings
+      localStorage.setItem(currentKey, val);
+      lastSavedValue = val;
+      updateStats();
+      validateJSON();
+      flash('Saved');
+      listKeys();
+    }
+
+    function formatJSON(){
+      try{
+        const obj = JSON.parse(els.editor.value);
+        els.editor.value = JSON.stringify(obj, null, 2);
+        updateStats();
+        validateJSON();
+      }catch(err){
+        alert('Cannot format, content is not valid JSON');
+      }
+    }
+
+    function minifyJSON(){
+      try{
+        const obj = JSON.parse(els.editor.value);
+        els.editor.value = JSON.stringify(obj);
+        updateStats();
+        validateJSON();
+      }catch(err){
+        alert('Cannot minify, content is not valid JSON');
+      }
+    }
+
+    function copyToClipboard(){
+      navigator.clipboard.writeText(els.editor.value).then(()=>flash('Copied'));
+    }
+
+    function downloadCurrent(){
+      if(!currentKey){ alert('Pick a key first'); return; }
+      const blob = new Blob([els.editor.value], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${currentKey}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function exportAll(){
+      const dump = {};
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        dump[k] = localStorage.getItem(k);
+      }
+      const blob = new Blob([JSON.stringify(dump, null, 2)], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'localStorage_dump.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function importFile(file){
+      const reader = new FileReader();
+      reader.onload = e => {
+        try{
+          const obj = JSON.parse(e.target.result);
+          if(obj && typeof obj === 'object'){
+            const entries = Object.entries(obj);
+            if(entries.length === 0){ alert('File JSON is empty'); return; }
+            if(!confirm(`Import ${entries.length} keys into localStorage? Existing keys will be overwritten`)) return;
+            for(const [k,v] of entries){
+              localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+            }
+            listKeys();
+            flash('Import complete');
+          } else {
+            alert('File JSON must be an object of key to value');
+          }
+        }catch(err){
+          alert('File is not valid JSON');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function flash(msg){
+      els.status.textContent = msg;
+      setTimeout(()=>{ els.status.textContent = currentKey ? `Editing: ${currentKey}` : 'No key selected'; }, 1200);
+    }
+
+    // Sidebar actions
+    els.keys.addEventListener('click', e => {
+      const keyAttr = e.target.getAttribute('data-key');
+      const action = e.target.getAttribute('data-action');
+      if(action === 'export'){
+        const key = decodeURIComponent(keyAttr);
+        const val = localStorage.getItem(key) ?? '';
+        const blob = new Blob([val], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${key}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return;
+      }
+      const wrap = e.target.closest('.key');
+      if(wrap){
+        const key = decodeURIComponent(wrap.getAttribute('data-key'));
+        selectKey(key);
+      }
+    });
+
+    // Toolbar buttons
+    document.getElementById('btnSave').onclick = save;
+    document.getElementById('btnFormat').onclick = formatJSON;
+    document.getElementById('btnMinify').onclick = minifyJSON;
+    document.getElementById('btnCopy').onclick = copyToClipboard;
+    document.getElementById('btnDownload').onclick = downloadCurrent;
+    document.getElementById('btnRefresh').onclick = listKeys;
+    document.getElementById('btnNewKey').onclick = () => {
+      const name = prompt('New key name');
+      if(!name) return;
+      if(localStorage.getItem(name) !== null && !confirm('Key exists, overwrite?')) return;
+      localStorage.setItem(name, '');
+      selectKey(name);
+    };
+    document.getElementById('btnClone').onclick = () => {
+      if(!currentKey){ alert('Pick a key first'); return; }
+      const name = prompt('Clone to new key name');
+      if(!name) return;
+      if(localStorage.getItem(name) !== null && !confirm('Key exists, overwrite?')) return;
+      localStorage.setItem(name, els.editor.value);
+      listKeys();
+      flash('Cloned');
+    };
+    document.getElementById('btnDelete').onclick = () => {
+      if(!currentKey){ alert('Pick a key first'); return; }
+      if(!confirm(`Delete key "${currentKey}"?`)) return;
+      localStorage.removeItem(currentKey);
+      currentKey = null;
+      els.editor.value = '';
+      els.status.textContent = 'No key selected';
+      updateStats();
+      validateJSON();
+      listKeys();
+    };
+
+    document.getElementById('btnExportAll').onclick = exportAll;
+
+    document.getElementById('btnImport').onclick = ()=> els.fileInput.click();
+    els.fileInput.addEventListener('change', e => {
+      if(e.target.files && e.target.files[0]) importFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    // Search filter
+    els.filter.addEventListener('input', listKeys);
+
+    // Editor input events
+    els.editor.addEventListener('input', () => {
+      updateStats();
+      const isValid = validateJSON();
+      if(els.autoSave.checked){ save(); }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+        e.preventDefault();
+        save();
+      }
+    });
+
+    // Bootstrap
+    listKeys();
+
+    // Optional helpers for common key names, adjust as needed
+    window.CacheEditor = {
+      select: selectKey,
+      // Suggest likely keys your app might use
+      suggestLikelyKeys(){
+        const candidates = ['workoutLogs', 'history', 'analysis_cache', 'sessions', 'last_cycle', 'cache', 'app_state'];
+        return candidates.filter(k => localStorage.getItem(k) !== null);
+      }
+    };
+  </script>
+</body>
+</html>
