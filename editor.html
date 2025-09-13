@@ -1,398 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cache Table Editor</title>
+  <title>Adolfo's Workout Log Editor</title>
   <style>
-    :root{
-      --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#94a3b8; --border:#1f2937; --accent:#22c55e; --danger:#ef4444;
-      --grid:#0a0f1f; --grid-alt:#0c1425; --grid-border:#233145;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 15px;
+      background-color: white;
+      background-image: url('background.jpg');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center center;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
-    header{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,0))}
-    header h1{font-size:16px;margin:0}
-    header .spacer{flex:1}
-    .btn{padding:8px 12px;border:1px solid var(--border);background:#0b1324;color:var(--text);border-radius:8px;cursor:pointer}
-    .btn:hover{background:#0e1a32}
-    .btn.primary{border-color:rgba(34,197,94,.35)}
-    .btn.danger{border-color:rgba(239,68,68,.35)}
-    .layout{display:grid;grid-template-columns:280px 1fr;height:calc(100% - 56px)}
-    aside{border-right:1px solid var(--border);background:var(--panel);height:100%;overflow:auto}
-    .search{padding:10px;border-bottom:1px solid var(--border)}
-    .search input{width:100%;padding:8px 10px;background:#0b1324;border:1px solid var(--border);border-radius:8px;color:var(--text)}
-    .keys{padding:6px}
-    .key{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px;border-radius:8px;cursor:pointer}
-    .key:hover{background:rgba(255,255,255,.04)}
-    .key.active{outline:1px solid rgba(255,255,255,.08);background:rgba(34,197,94,.05)}
-    .key small{color:var(--muted)}
-    main{display:grid;grid-template-rows:auto auto 1fr auto;height:100%}
-    .toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border-bottom:1px solid var(--border);background:var(--panel)}
-    .statusbar{display:flex;gap:12px;padding:8px 12px;border-top:1px solid var(--border);background:var(--panel);color:var(--muted)}
-    .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:#0b1324}
-    .error{color:var(--danger)}
 
-    /* Grid */
-    .grid-wrap{overflow:auto;background:var(--grid);border-top:1px solid var(--grid-border)}
-    table.grid{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
-    .grid th,.grid td{border-right:1px solid var(--grid-border);border-bottom:1px solid var(--grid-border);padding:6px 8px;min-width:110px}
-    .grid th{position:sticky;top:0;background:#101a2e;z-index:2}
-    .grid td{background:var(--grid)}
-    .grid tr:nth-child(even) td{background:var(--grid-alt)}
-    .grid .rownum{position:sticky;left:0;background:#0f1a2e;z-index:1;min-width:64px;text-align:right;color:var(--muted)}
-    .grid .sel{outline:2px solid rgba(34,197,94,.5)}
-    .grid td[contenteditable="true"]:focus{outline:2px solid rgba(34,197,94,.7);background:#0a1932}
-    .checkbox{min-width:36px;text-align:center}
-    .hint{color:var(--muted);font-size:12px}
+    #mainContent {
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 18px;
+      color: black;
+      max-width: 800px;
+      margin: auto;
+      box-shadow: 0 0 12px 2px #e3bc60;
+    }
+
+    h1 {
+      color: #4a7d23;
+      margin-bottom: 18px;
+    }
+
+    .group-container {
+      border: 1px solid #bbb;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #f9f9f9;
+    }
+
+    .group-header {
+      background-color: #e0e0e0;
+      padding: 10px 15px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      font-size: 1.1em;
+      color: black;
+    }
+    
+    .group-header:hover {
+        background-color: #d0d0d0;
+    }
+
+    .group-content {
+      display: none;
+      padding: 15px;
+      background-color: #fff;
+    }
+
+    .session-editor {
+      border: 1px solid #ccc;
+      border-left: 5px solid #4a7d23;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      padding: 12px;
+      background-color: #fdfdfd;
+    }
+
+    .session-editor-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      min-width: 600px;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      text-align: center;
+    }
+
+    th {
+      background: #e0e0e0;
+    }
+
+    input[type="number"], input[type="date"] {
+      width: 80px;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+    
+    .btn {
+      margin-top: 10px;
+      padding: 6px 16px;
+      font-size: 1em;
+      color: white;
+      background-color: #4a7d23;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #3d661b;
+    }
+
+    .delete-btn {
+      background-color: #d9534f;
+    }
+    .delete-btn:hover {
+      background-color: #c9302c;
+    }
   </style>
+  <script src="workout_program.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Cache Table Editor</h1>
-    <div class="spacer"></div>
-    <button class="btn" id="btnExportAll">Export all</button>
-    <button class="btn" id="btnImportAll">Import file</button>
-    <input id="fileAll" type="file" accept="application/json" style="display:none" />
-  </header>
-
-  <div class="layout">
-    <aside>
-      <div class="search"><input id="keyFilter" placeholder="Filter keys" /></div>
-      <div class="keys" id="keys"></div>
-    </aside>
-
-    <main>
-      <div class="toolbar">
-        <button class="btn primary" id="btnSave">Save to localStorage</button>
-        <button class="btn" id="btnAddRow">Add row</button>
-        <button class="btn danger" id="btnDeleteRows">Delete selected</button>
-        <button class="btn" id="btnAddCol">Add column</button>
-        <button class="btn" id="btnRenameCol">Rename column</button>
-        <button class="btn" id="btnDeleteCol">Delete column</button>
-        <button class="btn" id="btnDownload">Download JSON</button>
-        <button class="btn" id="btnImport">Import JSON to key</button>
-        <input id="fileKey" type="file" accept="application/json" style="display:none" />
-        <label style="margin-left:8px"><input type="checkbox" id="autoSave"> Auto save</label>
-        <div style="margin-left:auto" class="hint" id="currentKey">No key selected</div>
-      </div>
-
-      <div class="toolbar" style="border-bottom:none; gap:12px">
-        <div class="hint">Assumes the value is a JSON array of objects. Arrays of arrays are supported with column names C1, C2, ...</div>
-      </div>
-
-      <div class="grid-wrap" id="gridWrap">
-        <!-- table injected here -->
-      </div>
-
-      <div class="statusbar">
-        <span class="pill" id="countInfo">0 rows</span>
-        <span class="pill" id="byteInfo">0 bytes</span>
-        <span class="pill">Validation: <span id="validInfo">n/a</span></span>
-      </div>
-    </main>
+  <div id="mainContent">
+    <h1>Workout Log Editor</h1>
+    <div id="editor"></div>
+    <button onclick="exportJSON()" class="btn">Export Modified Log (JSON)</button>
   </div>
 
   <script>
-    const els = {
-      keys: document.getElementById('keys'),
-      keyFilter: document.getElementById('keyFilter'),
-      gridWrap: document.getElementById('gridWrap'),
-      countInfo: document.getElementById('countInfo'),
-      byteInfo: document.getElementById('byteInfo'),
-      validInfo: document.getElementById('validInfo'),
-      currentKey: document.getElementById('currentKey'),
-      fileAll: document.getElementById('fileAll'),
-      fileKey: document.getElementById('fileKey'),
-      autoSave: document.getElementById('autoSave')
-    };
-
-    let state = { key:null, headers:[], rows:[], isArrayOfArrays:false };
-
-    function byteLength(str){ return new Blob([str]).size; }
-
-    function listKeys(){
-      const q = (els.keyFilter.value||'').toLowerCase();
-      const items = [];
-      for(let i=0;i<localStorage.length;i++){
-        const k = localStorage.key(i);
-        if(!q || k.toLowerCase().includes(q)){
-          const v = localStorage.getItem(k) || '';
-          items.push({k, size: byteLength(v)});
-        }
-      }
-      items.sort((a,b)=>a.k.localeCompare(b.k));
-      els.keys.innerHTML = items.map(({k,size})=>`
-        <div class="key ${k===state.key?'active':''}" data-key="${encodeURIComponent(k)}">
-          <div>
-            <div>${k}</div>
-            <small>${size.toLocaleString()} bytes</small>
-          </div>
-          <button class="btn" data-export="${encodeURIComponent(k)}">Export</button>
-        </div>
-      `).join('') || '<div class="hint" style="padding:10px">No keys</div>';
+    function toggleGroup(contentId) {
+      const el = document.getElementById(contentId);
+      el.style.display = (el.style.display === 'block') ? 'none' : 'block';
     }
 
-    els.keys.addEventListener('click', e => {
-      const exp = e.target.getAttribute('data-export');
-      if(exp){
-        const key = decodeURIComponent(exp);
-        const val = localStorage.getItem(key) || '';
-        download(`$${key}.json`, val);
+    function renderEditor() {
+      const editorDiv = document.getElementById('editor');
+      let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      if (!allLogs.length) {
+        editorDiv.innerHTML = '<i>No sessions logged yet.</i>';
         return;
       }
-      const host = e.target.closest('.key');
-      if(host){
-        const key = decodeURIComponent(host.getAttribute('data-key'));
-        loadKey(key);
-      }
-    });
+      
+      allLogs.forEach((log, index) => log.originalIndex = index);
 
-    function loadKey(key){
-      state = {key, headers:[], rows:[], isArrayOfArrays:false};
-      const raw = localStorage.getItem(key) || '';
-      els.currentKey.textContent = `Editing: ${key}`;
-      updateByteInfo(raw);
-      try{
-        const parsed = JSON.parse(raw);
-        buildGridFrom(parsed);
-        renderGrid();
-        validate(true);
-      }catch(err){
-        // Not JSON or invalid. Show a single cell editor that treats value as string
-        state.headers = ['value'];
-        state.rows = [[raw]];
-        state.isArrayOfArrays = true; // trick to serialize as string later
-        renderGrid(true);
-        validate(false, 'Value is a plain string, will save as string');
-      }
-      listKeys();
-    }
+      const groupedLogs = allLogs.reduce((acc, log) => {
+        const day = log.day;
+        if (!acc[day]) {
+          acc[day] = [];
+        }
+        acc[day].push(log);
+        return acc;
+      }, {});
 
-    function buildGridFrom(data){
-      if(Array.isArray(data)){
-        if(data.length && Array.isArray(data[0])){
-          state.isArrayOfArrays = true;
-          const maxLen = Math.max(...data.map(r=>r.length));
-          state.headers = Array.from({length:maxLen}, (_,i)=>`C${i+1}`);
-          state.rows = data.map(r=>{
-            const row = new Array(maxLen).fill("");
-            r.forEach((v,i)=> row[i] = v);
-            return row;
+      let html = '';
+      for (const day in programDays) {
+        if (groupedLogs[day]) {
+          const contentId = `groupContent_${day}`;
+          html += `
+            <div class="group-container">
+              <div class="group-header" onclick="toggleGroup('${contentId}')">
+                ${programDays[day]}
+              </div>
+              <div class="group-content" id="${contentId}">
+          `;
+          
+          groupedLogs[day].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          groupedLogs[day].forEach(session => {
+            const maxSets = Math.max(...session.log.map(ex => ex.reps.length));
+            html += `
+            <div class="session-editor">
+              <div class="session-editor-header">
+                Date: <input type="date" id="date_${session.originalIndex}" value="${session.date}"> | Week: ${session.week}
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <tr>
+                    <th>Exercise</th>
+                    <th>Weight (kg)</th>
+                    ${Array.from({ length: maxSets }, (_, i) => `<th>Set ${i + 1} reps</th>`).join('')}
+                  </tr>
+                  ${session.log.map((ex, exIndex) => `
+                    <tr>
+                      <td>${ex.name}</td>
+                      <td><input type="number" id="weight_${session.originalIndex}_${exIndex}" value="${ex.weight}" step="0.5"></td>
+                      ${ex.reps.map((rep, repIndex) => `<td><input type="number" id="rep_${session.originalIndex}_${exIndex}_${repIndex}" value="${rep}"></td>`).join('')}
+                      ${Array.from({ length: maxSets - ex.reps.length }, () => '<td></td>').join('')}
+                    </tr>
+                  `).join('')}
+                </table>
+              </div>
+              <button class="btn" onclick="saveChanges(${session.originalIndex})">Save Changes</button>
+              <button class="btn delete-btn" onclick="deleteSession(${session.originalIndex})">Delete Session</button>
+            </div>
+            `;
           });
-        } else if(data.length && typeof data[0] === 'object'){
-          const keys = new Set();
-          data.forEach(o=> Object.keys(o||{}).forEach(k=> keys.add(k)) );
-          state.headers = Array.from(keys);
-          state.rows = data.map(o => state.headers.map(h => (o && h in o) ? o[h] : ""));
-        } else {
-          // array of primitives
-          state.isArrayOfArrays = true;
-          state.headers = ['value'];
-          state.rows = data.map(v=>[v]);
+          html += `</div></div>`;
         }
-      } else if(data && typeof data === 'object'){
-        // object to two column grid key, value
-        state.headers = ['key','value'];
-        state.rows = Object.entries(data);
-      } else {
-        state.headers = ['value'];
-        state.rows = [[data]];
       }
+      editorDiv.innerHTML = html;
     }
 
-    function renderGrid(singleCellMode=false){
-      const table = document.createElement('table');
-      table.className = 'grid';
-      const thead = document.createElement('thead');
-      const trh = document.createElement('tr');
+    function saveChanges(index) {
+      let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      const session = allLogs[index];
+      
+      session.date = document.getElementById(`date_${index}`).value;
 
-      // corner headers
-      const thChk = document.createElement('th'); thChk.className='checkbox'; thChk.textContent='Sel'; trh.appendChild(thChk);
-      const thRow = document.createElement('th'); thRow.className='rownum'; thRow.textContent='#'; trh.appendChild(thRow);
-      // dynamic headers
-      state.headers.forEach((h,idx)=>{
-        const th = document.createElement('th'); th.textContent = h; th.dataset.col = idx;
-        trh.appendChild(th);
-      });
-      thead.appendChild(trh); table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      state.rows.forEach((row,rIdx)=>{
-        const tr = document.createElement('tr');
-        const tdChk = document.createElement('td'); tdChk.className='checkbox';
-        tdChk.innerHTML = `<input type="checkbox" data-row="${rIdx}">`;
-        tr.appendChild(tdChk);
-        const tdRow = document.createElement('td'); tdRow.className='rownum'; tdRow.textContent = String(rIdx+1);
-        tr.appendChild(tdRow);
-        row.forEach((val,cIdx)=>{
-          const td = document.createElement('td');
-          td.contentEditable = true;
-          td.dataset.row = rIdx; td.dataset.col = cIdx;
-          td.textContent = formatCell(val);
-          td.addEventListener('blur', onCellEdit);
-          tr.appendChild(td);
+      session.log.forEach((ex, exIndex) => {
+        ex.weight = document.getElementById(`weight_${index}_${exIndex}`).value;
+        ex.reps.forEach((rep, repIndex) => {
+          ex.reps[repIndex] = document.getElementById(`rep_${index}_${exIndex}_${repIndex}`).value;
         });
-        tbody.appendChild(tr);
       });
-      table.appendChild(tbody);
 
-      els.gridWrap.innerHTML = '';
-      els.gridWrap.appendChild(table);
-      updateCount();
+      localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+      alert('Session updated!');
+      renderEditor();
     }
-
-    function formatCell(v){
-      if(v === null) return 'null';
-      if(typeof v === 'object') return JSON.stringify(v);
-      return String(v);
-    }
-
-    function parseCell(text){
-      const t = text.trim();
-      if(t === '') return '';
-      if(t === 'null') return null;
-      if(t === 'true') return true;
-      if(t === 'false') return false;
-      if(!isNaN(Number(t))) return Number(t);
-      // try JSON object or array
-      try{ return JSON.parse(t); }catch(_){ return text; }
-    }
-
-    function onCellEdit(e){
-      const td = e.currentTarget;
-      const r = Number(td.dataset.row), c = Number(td.dataset.col);
-      state.rows[r][c] = parseCell(td.textContent);
-      validate();
-      if(els.autoSave.checked) save();
-    }
-
-    function updateCount(){
-      els.countInfo.textContent = `${state.rows.length} rows, ${state.headers.length} columns`;
-    }
-
-    function serialize(){
-      let data;
-      if(state.headers.length === 2 && state.headers[0]==='key' && state.headers[1]==='value'){
-        data = Object.fromEntries(state.rows.map(r=>[r[0], r[1]]));
-      } else if(state.isArrayOfArrays) {
-        data = state.rows.map(r=> r.map(v=>v));
-        // special case single cell string editor, return string instead of array
-        if(state.headers.length===1 && state.headers[0]==='value' && state.rows.length===1){
-          data = state.rows[0][0];
+    
+    function deleteSession(index) {
+        if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+            let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+            allLogs.splice(index, 1);
+            localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+            alert('Session deleted!');
+            renderEditor();
         }
-      } else {
-        data = state.rows.map(r=>{
-          const o = {}; state.headers.forEach((h,i)=>{ if(r[i] !== "") o[h] = r[i]; }); return o;
-        });
-      }
-      const raw = JSON.stringify(data, null, 2);
-      updateByteInfo(raw);
-      return raw;
     }
 
-    function validate(okHint, hintMsg){
-      try{
-        JSON.parse(serialize());
-        els.validInfo.textContent = hintMsg || 'valid JSON';
-        els.validInfo.className = '';
-      }catch(err){
-        els.validInfo.textContent = 'invalid JSON';
-        els.validInfo.className = 'error';
-      }
+    function exportJSON() {
+        let allLogs = localStorage.getItem('hypertrophyLogs');
+        if (!allLogs) {
+            alert('No sessions to export!');
+            return;
+        }
+        const safeDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const filename = `log_edited_${safeDate}.json`;
+
+        let blob = new Blob([allLogs], { type: 'application/json' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
-    function updateByteInfo(raw){
-      els.byteInfo.textContent = `${byteLength(raw).toLocaleString()} bytes`;
-    }
-
-    function save(){
-      if(!state.key){ alert('Pick a key first'); return; }
-      const raw = serialize();
-      localStorage.setItem(state.key, raw);
-    }
-
-    function addRow(){
-      const row = new Array(state.headers.length).fill('');
-      state.rows.push(row); renderGrid(); if(els.autoSave.checked) save();
-    }
-
-    function deleteSelected(){
-      const checks = els.gridWrap.querySelectorAll('tbody input[type="checkbox"]:checked');
-      if(!checks.length) return;
-      const idxs = Array.from(checks).map(ch=> Number(ch.getAttribute('data-row'))).sort((a,b)=>b-a);
-      idxs.forEach(i=> state.rows.splice(i,1));
-      renderGrid(); if(els.autoSave.checked) save();
-    }
-
-    function addCol(){
-      const name = prompt('New column name'); if(!name) return;
-      state.headers.push(name);
-      state.rows.forEach(r=> r.push(''));
-      renderGrid(); if(els.autoSave.checked) save();
-    }
-
-    function renameCol(){
-      const name = prompt('Column to rename'); if(!name) return;
-      const idx = state.headers.indexOf(name); if(idx<0){ alert('Column not found'); return; }
-      const newName = prompt('New column name', name); if(!newName) return;
-      state.headers[idx] = newName; renderGrid(); if(els.autoSave.checked) save();
-    }
-
-    function deleteCol(){
-      const name = prompt('Column to delete'); if(!name) return;
-      const idx = state.headers.indexOf(name); if(idx<0){ alert('Column not found'); return; }
-      state.headers.splice(idx,1);
-      state.rows.forEach(r=> r.splice(idx,1));
-      renderGrid(); if(els.autoSave.checked) save();
-    }
-
-    function download(filename, text){
-      const blob = new Blob([text], {type:'application/json'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
-    }
-
-    // Import and export
-    document.getElementById('btnExportAll').onclick = ()=>{
-      const dump = {}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); dump[k]=localStorage.getItem(k); }
-      download('localStorage_dump.json', JSON.stringify(dump, null, 2));
-    };
-    document.getElementById('btnImportAll').onclick = ()=> els.fileAll.click();
-    els.fileAll.addEventListener('change', e=>{
-      const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev=>{
-        try{ const obj = JSON.parse(ev.target.result); const entries = Object.entries(obj||{}); if(!entries.length){alert('Empty file'); return;}
-          if(!confirm(`Import ${entries.length} keys and overwrite`)) return; entries.forEach(([k,v])=> localStorage.setItem(k, typeof v==='string'?v:JSON.stringify(v)) ); listKeys(); alert('Import complete');
-        }catch{ alert('Invalid file'); }
-      }; r.readAsText(f); e.target.value='';
-    });
-
-    document.getElementById('btnDownload').onclick = ()=>{
-      if(!state.key) return alert('Pick a key first');
-      download(`${state.key}.json`, serialize());
-    };
-    document.getElementById('btnImport').onclick = ()=>{
-      if(!state.key) return alert('Pick a key first'); els.fileKey.click();
-    };
-    els.fileKey.addEventListener('change', e=>{
-      const f = e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload = ev=>{
-        try{ const data = JSON.parse(ev.target.result); buildGridFrom(data); renderGrid(); validate(); if(els.autoSave.checked) save(); }
-        catch{ alert('Invalid JSON'); }
-      }; r.readAsText(f); e.target.value='';
-    });
-
-    // Buttons
-    document.getElementById('btnSave').onclick = save;
-    document.getElementById('btnAddRow').onclick = addRow;
-    document.getElementById('btnDeleteRows').onclick = deleteSelected;
-    document.getElementById('btnAddCol').onclick = addCol;
-    document.getElementById('btnRenameCol').onclick = renameCol;
-    document.getElementById('btnDeleteCol').onclick = deleteCol;
-
-    els.keyFilter.addEventListener('input', listKeys);
-
-    // Init
-    listKeys();
+    document.addEventListener('DOMContentLoaded', renderEditor);
   </script>
 </body>
 </html>
