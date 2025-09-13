@@ -177,54 +177,45 @@
       }
 
      function getHistoryForDisplay(exerciseName, allLogs, lastSession, nextWeek) {
-  // sessions are in chronological order, earliest to latest
-  const sessions = collectExerciseSessions(exerciseName, allLogs);
-  if (sessions.length === 0) return [];
+        const sessions = collectExerciseSessions(exerciseName, allLogs);
+        if (sessions.length === 0) return [];
 
-  // Helper: last three non-week-4 sessions strictly before endIdx
-  function lastThreeBefore(endIdx) {
-    const out = [];
-    for (let i = endIdx - 1; i >= 0 && out.length < 3; i--) {
-      const w = sessions[i].week;
-      if (w >= 1 && w <= 3) out.push(sessions[i]);
+        function lastThreeBefore(endIdx) {
+            const out = [];
+            for (let i = endIdx - 1; i >= 0 && out.length < 3; i--) {
+            const w = sessions[i].week;
+            if (w >= 1 && w <= 3) out.push(sessions[i]);
+            }
+            return out.reverse();
+        }
+
+        const lastIdx = sessions.findIndex(
+            s => s.week === lastSession.week &&
+                s.date === lastSession.date &&
+                s.weight === lastSession.weight
+        );
+
+        const endIdx = lastIdx >= 0 ? lastIdx : sessions.length;
+
+        if (lastSession.week === 3 && nextWeek === 4) {
+            const want = [1, 2, 3];
+            const found = {1: null, 2: null, 3: null};
+            for (let i = endIdx - 1; i >= 0; i--) {
+            const w = sessions[i].week;
+            if (w >= 1 && w <= 3 && found[w] === null) {
+                found[w] = sessions[i];
+                if (found[1] && found[2] && found[3]) break;
+            } else if (w === 4) {
+                break;
+            }
+            }
+            const seq = want.map(w => found[w]).filter(Boolean);
+            return seq.length === 3 ? seq : lastThreeBefore(endIdx);
+        }
+
+        const hist = lastThreeBefore(endIdx);
+        return hist;
     }
-    return out.reverse(); // return chronological order
-  }
-
-  // Find the index of the lastSession inside sessions
-  const lastIdx = sessions.findIndex(
-    s => s.week === lastSession.week &&
-         s.date === lastSession.date &&
-         s.weight === lastSession.weight
-  );
-
-  // Safety, if not found just fall back to last three before the end
-  const endIdx = lastIdx >= 0 ? lastIdx : sessions.length;
-
-  // Special case: moving from Week 3 to Week 4, show 1-2-3 of current cycle
-  if (lastSession.week === 3 && nextWeek === 4) {
-    // Walk back to collect current cycle 1,2,3 in order
-    const want = [1, 2, 3];
-    const found = {1: null, 2: null, 3: null};
-    for (let i = endIdx - 1; i >= 0; i--) {
-      const w = sessions[i].week;
-      if (w >= 1 && w <= 3 && found[w] === null) {
-        found[w] = sessions[i];
-        if (found[1] && found[2] && found[3]) break;
-      } else if (w === 4) {
-        // crossing a previous cycle boundary, stop
-        break;
-      }
-    }
-    const seq = want.map(w => found[w]).filter(Boolean);
-    return seq.length === 3 ? seq : lastThreeBefore(endIdx);
-  }
-
-  // General rule: show the last three completed non-week-4 sessions
-  // strictly BEFORE the current lastSession
-  const hist = lastThreeBefore(endIdx);
-  return hist;
-}
 
 
       // Returns [lowKg, highKg, noteText]
@@ -247,7 +238,6 @@
         const exDetails = (Object.values(program).flat()).find(e => e.name === exerciseName);
         if (!exDetails) return '';
 
-        // Find the most recent logged session for this exercise
         let lastSession = null;
         for (let i = allLogs.length - 1; i >= 0; i--) {
           const foundEx = allLogs[i].log.find(l => l.name === exerciseName);
@@ -270,17 +260,19 @@
         const nextWeek = lastSession.week >= 4 ? 1 : lastSession.week + 1;
 
         const history = getHistoryForDisplay(exerciseName, allLogs, lastSession, nextWeek);
+        const sessionsToDisplay = [...history, lastSession];
+        sessionsToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         let historyHTML = '';
-        if (history.length > 0) {
-          historyHTML += '<table class="history-table"><thead><tr><th>Week</th><th>Weight (kg)</th><th>Reps</th></tr></thead><tbody>';
-          history.forEach(s => {
-            historyHTML += `<tr><td>${s.week}</td><td>${s.weight.toFixed(1)}</td><td>${(s.reps || []).join(', ')}</td></tr>`;
+        if (sessionsToDisplay.length > 0) {
+          historyHTML += '<table class="history-table"><thead><tr><th>Date</th><th>Week</th><th>Weight (kg)</th><th>Reps</th></tr></thead><tbody>';
+          sessionsToDisplay.forEach(s => {
+            historyHTML += `<tr><td>${s.date}</td><td>${s.week}</td><td>${s.weight.toFixed(1)}</td><td>${(s.reps || []).join(', ')}</td></tr>`;
           });
           historyHTML += '</tbody></table>';
         }
 
         if (nextWeek === 4 && lastSession.week === 3) {
-          // Deload rules only when moving from Week 3 to Week 4
           const [lowKg, highKg, note, type] = deloadRangeFor(exerciseName, lastSession.weight);
           let extra = '';
           const n2 = exerciseName.toLowerCase();
@@ -293,7 +285,6 @@
             ${extra}
           </span>`;
         } else if (lastSession.week === 4 && nextWeek === 1) {
-          // New cycle start, base on the last heavy week, not the deload
           const baseline = findBaselineSession(exerciseName, allLogs) || lastSession;
           const repRangeParts = String(exDetails.reps[(baseline.week - 1)]).split('-');
           const minOfRepRange = parseInt(repRangeParts[0]);
@@ -312,7 +303,6 @@
             recommendationHTML = `<span class="recommendation rec-maintain">ACTION: New cycle, Week 1. Start about ${newWeight} kg. Keep RIR 2 to 3 and aim to beat your Week ${baseline.week} reps.</span>`;
           }
         } else {
-          // Normal progression within the cycle
           const repRangeParts = String(targetRepsStr).split('-');
           const minOfRepRange = parseInt(repRangeParts[0]);
           const topOfRepRange = parseInt(repRangeParts.pop());
@@ -333,8 +323,6 @@
         return `
           <div class="analysis-card">
             <h3>${exerciseName}</h3>
-            <p><strong>Last Session Week ${lastSession.week}:</strong> ${lastSession.weight} kg for <strong>${lastSession.reps.join(', ')}</strong> reps.</p>
-            <p><em>Program target was: ${targetSets} sets of ${targetRepsStr} reps at RIR ${rirTargets[weekIdx]}</em></p>
             ${historyHTML}
             ${recommendationHTML}
           </div>
@@ -350,7 +338,6 @@
           return;
         }
 
-        // Map exercise to day key
         const exerciseToDayMap = new Map();
         for (const dayKey in program) {
           program[dayKey].forEach(ex => {
@@ -358,7 +345,6 @@
           });
         }
 
-        // Group logged exercises by workout day
         const groupedExercises = {};
         allLogs.forEach(session => {
           session.log.forEach(exercise => {
@@ -372,7 +358,6 @@
         
         let fullReportHTML = '';
         
-        // Maintain program day order
         for (const dayKey of Object.keys(programDays)) {
           const exercisesForDay = groupedExercises[dayKey];
           if (!exercisesForDay || exercisesForDay.size === 0) continue;
