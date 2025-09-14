@@ -82,8 +82,20 @@
     }
     
     .analysis-card strong { color: #3b2a87; }
+    
+    /* For table horizontal scrolling */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
 
-    .history-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .history-table {
+      width: 100%;
+      min-width: 500px; /* Ensure table has a minimum width to show scrollbar when needed */
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
     .history-table th, .history-table td { border: 1px solid #ddd; padding: 6px 8px; font-size: 0.95em; }
     .history-table th { background-color: #f5f5f5; text-align: left; }
 
@@ -265,11 +277,11 @@
 
         let historyHTML = '';
         if (sessionsToDisplay.length > 0) {
-          historyHTML += '<table class="history-table"><thead><tr><th>Date</th><th>Week</th><th>Weight (kg)</th><th>Reps</th></tr></thead><tbody>';
+          historyHTML += '<div class="table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Week</th><th>Weight (kg)</th><th>Reps</th></tr></thead><tbody>';
           sessionsToDisplay.forEach(s => {
             historyHTML += `<tr><td>${s.date}</td><td>${s.week}</td><td>${s.weight.toFixed(1)}</td><td>${(s.reps || []).join(', ')}</td></tr>`;
           });
-          historyHTML += '</tbody></table>';
+          historyHTML += '</tbody></table></div>';
         }
 
         if (nextWeek === 4 && lastSession.week === 3) {
