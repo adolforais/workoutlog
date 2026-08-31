@@ -4,147 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Adolfo's Workout Log Editor</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 15px;
-      background-color: white;
-      background-image: url('background.jpg');
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-position: center center;
-    }
-
-    #mainContent {
-      background-color: rgba(255, 255, 255, 0.95);
-      padding: 15px;
-      border-radius: 18px;
-      color: black;
-      max-width: 800px;
-      margin: auto;
-      box-shadow: 0 0 12px 2px #e3bc60;
-    }
-
-    h1 {
-      color: #4a7d23;
-      margin-bottom: 18px;
-    }
-
-    .group-container {
-      border: 1px solid #bbb;
-      margin-bottom: 12px;
-      border-radius: 6px;
-      overflow: hidden;
-      background-color: #f9f9f9;
-    }
-
-    .group-header {
-      background-color: #e0e0e0;
-      padding: 10px 15px;
-      cursor: pointer;
-      user-select: none;
-      font-weight: bold;
-      font-size: 1.1em;
-      color: black;
-    }
-    
-    .group-header:hover {
-        background-color: #d0d0d0;
-    }
-
-    .group-content {
-      display: none;
-      padding: 15px;
-      background-color: #fff;
-    }
-
-    .session-editor {
-      border: 1px solid #ccc;
-      border-left: 5px solid #4a7d23;
-      border-radius: 6px;
-      margin-bottom: 15px;
-      padding: 12px;
-      background-color: #fdfdfd;
-    }
-
-    .session-editor-header {
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    .table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      min-width: 600px;
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    th, td {
-      border: 1px solid #bbb;
-      padding: 6px;
-      text-align: center;
-    }
-
-    th {
-      background: #e0e0e0;
-    }
-
-    input[type="number"], input[type="date"] {
-      width: 80px;
-      padding: 4px;
-      box-sizing: border-box;
-    }
-    
-    .btn {
-      margin-top: 10px;
-      padding: 6px 16px;
-      font-size: 1em;
-      color: white;
-      background-color: #4a7d23;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .btn:hover {
-      background-color: #3d661b;
-    }
-
-    .delete-btn {
-      background-color: #d9534f;
-    }
-    .delete-btn:hover {
-      background-color: #c9302c;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
   <script src="workout_program.js"></script>
 </head>
 <body>
-  <div id="mainContent">
-    <h1>Workout Log Editor</h1>
+  <div id="siteNav"></div>
+  <div class="wrap wide">
+    <header class="page">
+      <h1>Session editor</h1>
+      <p class="sub">Fix a typo or adjust a past session. Changes are saved back to this browser's log.</p>
+    </header>
+
     <div id="editor"></div>
-    <button onclick="exportJSON()" class="btn">Export Modified Log (JSON)</button>
+    <div style="margin-top: 16px;">
+      <button onclick="exportJSON()" class="btn secondary">Export Modified Log (JSON)</button>
+    </div>
   </div>
 
+  <script src="nav.js"></script>
   <script>
     function toggleGroup(contentId) {
       const el = document.getElementById(contentId);
-      el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+      const header = document.querySelector(`[data-target="${contentId}"]`);
+      const isOpen = el.style.display === 'block';
+      el.style.display = isOpen ? 'none' : 'block';
+      if (header) header.classList.toggle('open', !isOpen);
     }
 
     function renderEditor() {
       const editorDiv = document.getElementById('editor');
       let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
       if (!allLogs.length) {
-        editorDiv.innerHTML = '<i>No sessions logged yet.</i>';
+        editorDiv.innerHTML = '<p class="sub">No sessions logged yet.</p>';
         return;
       }
-      
+
       allLogs.forEach((log, index) => log.originalIndex = index);
 
       const groupedLogs = allLogs.reduce((acc, log) => {
@@ -162,22 +56,22 @@
           const contentId = `groupContent_${day}`;
           html += `
             <div class="group-container">
-              <div class="group-header" onclick="toggleGroup('${contentId}')">
+              <div class="group-header" data-target="${contentId}" onclick="toggleGroup('${contentId}')">
                 ${programDays[day]}
               </div>
               <div class="group-content" id="${contentId}">
           `;
-          
+
           groupedLogs[day].sort((a, b) => new Date(b.date) - new Date(a.date));
 
           groupedLogs[day].forEach(session => {
             const maxSets = Math.max(...session.log.map(ex => ex.reps.length));
             html += `
-            <div class="session-editor">
-              <div class="session-editor-header">
+            <div class="card" style="border-left: 3px solid var(--accent); margin-bottom: 15px;">
+              <div style="font-weight: 600; margin-bottom: 10px;">
                 Date: <input type="date" id="date_${session.originalIndex}" value="${session.date}"> | Week: ${session.week}
               </div>
-              <div class="table-wrapper">
+              <div class="table-scroll">
                 <table>
                   <tr>
                     <th>Exercise</th>
@@ -187,15 +81,17 @@
                   ${session.log.map((ex, exIndex) => `
                     <tr>
                       <td>${ex.name}</td>
-                      <td><input type="number" id="weight_${session.originalIndex}_${exIndex}" value="${ex.weight}" step="0.5"></td>
-                      ${ex.reps.map((rep, repIndex) => `<td><input type="number" id="rep_${session.originalIndex}_${exIndex}_${repIndex}" value="${rep}"></td>`).join('')}
+                      <td><input type="number" id="weight_${session.originalIndex}_${exIndex}" value="${ex.weight}" step="0.5" style="width: 80px;"></td>
+                      ${ex.reps.map((rep, repIndex) => `<td><input type="number" id="rep_${session.originalIndex}_${exIndex}_${repIndex}" value="${rep}" style="width: 64px;"></td>`).join('')}
                       ${Array.from({ length: maxSets - ex.reps.length }, () => '<td></td>').join('')}
                     </tr>
                   `).join('')}
                 </table>
               </div>
-              <button class="btn" onclick="saveChanges(${session.originalIndex})">Save Changes</button>
-              <button class="btn delete-btn" onclick="deleteSession(${session.originalIndex})">Delete Session</button>
+              <div style="margin-top: 12px;">
+                <button class="btn" onclick="saveChanges(${session.originalIndex})">Save Changes</button>
+                <button class="btn danger" onclick="deleteSession(${session.originalIndex})">Delete Session</button>
+              </div>
             </div>
             `;
           });
@@ -208,7 +104,7 @@
     function saveChanges(index) {
       let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
       const session = allLogs[index];
-      
+
       session.date = document.getElementById(`date_${index}`).value;
 
       session.log.forEach((ex, exIndex) => {
@@ -222,7 +118,7 @@
       alert('Session updated!');
       renderEditor();
     }
-    
+
     function deleteSession(index) {
         if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
             let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');

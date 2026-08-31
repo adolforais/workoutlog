@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One-Rep Max Calculator</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Hero */
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px 28px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: end;
+  }
+
+  @media (max-width: 640px) {
+    .hero { grid-template-columns: 1fr; }
+  }
+
+  .hero-figure .label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .hero-figure .number-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .hero-figure .number {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: clamp(3rem, 9vw, 4.6rem);
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero-figure .unit {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+  }
+
+  .tick-rule {
+    margin-top: 14px;
+    height: 8px;
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--accent) 0, var(--accent) 1px,
+      transparent 1px, transparent 10px
+    );
+    opacity: 0.55;
+  }
+
+  .inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  thead th:first-child,
+  tbody td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+  }
+
+  thead th.avg-col { color: var(--accent); }
+
+  tbody td.avg-col {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  tbody tr.current { background: var(--accent-soft); }
+
+  tbody tr.current td:first-child {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .legend {
+    margin-top: 16px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <div id="siteNav"></div>
+  <div class="wrap wide">
+    <header class="page">
+      <h1>One-rep max calculator</h1>
+      <p class="sub">Enter a weight and the reps you completed with it. The calculator estimates your one-rep max and shows what you could likely lift for 1 to 15 reps, across six established formulas.</p>
+    </header>
+
+    <section class="hero">
+      <div class="hero-figure">
+        <div class="label">Estimated one-rep max, averaged across models</div>
+        <div class="number-row">
+          <span class="number" id="oneRmDisplay">0</span>
+          <span class="unit">kg</span>
+        </div>
+        <div class="tick-rule"></div>
+      </div>
+
+      <div class="inputs">
+        <div class="field">
+          <label for="weightInput">Weight lifted (kg)</label>
+          <div class="control">
+            <button type="button" id="weightDown" aria-label="Decrease weight">-</button>
+            <input type="number" id="weightInput" value="100" min="1" step="0.5" inputmode="decimal">
+            <button type="button" id="weightUp" aria-label="Increase weight">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="repsInput">Reps completed</label>
+          <div class="control">
+            <button type="button" id="repsDown" aria-label="Decrease reps">-</button>
+            <input type="number" id="repsInput" value="7" min="1" max="15" step="1" inputmode="numeric">
+            <button type="button" id="repsUp" aria-label="Increase reps">+</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="table-section">
+      <div class="section-head">
+        <h2>Weight by rep count</h2>
+      </div>
+      <p class="sub" style="margin-top: -6px;">Each column applies a different formula to your entered set. The average column is the main estimate; the current rep count is highlighted.</p>
+      <div class="table-scroll">
+        <table id="repTable">
+          <thead>
+            <tr>
+              <th>Reps</th>
+              <th class="avg-col">Average</th>
+              <th>Epley</th>
+              <th>Brzycki</th>
+              <th>Lombardi</th>
+              <th>O'Conner</th>
+              <th>Wathan</th>
+              <th>Mayhew</th>
+            </tr>
+          </thead>
+          <tbody id="repTableBody"></tbody>
+        </table>
+      </div>
+      <p class="legend">Formulas: Epley (1985), Brzycki (1993), Lombardi (1989), O'Conner et al. (1989), Wathan (1994), Mayhew et al. (1992). Estimates vary by rep range and lifter; treat these as guidance, not a guarantee.</p>
+    </section>
+
+    <footer class="page">
+      Built for training reference only. Always warm up and use a spotter or safety bars when testing near-maximal loads.
+    </footer>
+  </div>
+
+<script src="nav.js"></script>
+<script>
+  const formulas = [
+    { key: 'epley',    name: 'Epley',
+      oneRM: (w, r) => w * (1 + r / 30),
+      weightAt: (orm, n) => orm / (1 + n / 30) },
+    { key: 'brzycki',  name: 'Brzycki',
+      oneRM: (w, r) => w * 36 / (37 - r),
+      weightAt: (orm, n) => orm * (37 - n) / 36 },
+    { key: 'lombardi', name: 'Lombardi',
+      oneRM: (w, r) => w * Math.pow(r, 0.10),
+      weightAt: (orm, n) => orm / Math.pow(n, 0.10) },
+    { key: 'oconner',  name: "O'Conner",
+      oneRM: (w, r) => w * (1 + 0.025 * r),
+      weightAt: (orm, n) => orm / (1 + 0.025 * n) },
+    { key: 'wathan',   name: 'Wathan',
+      oneRM: (w, r) => (100 * w) / (48.8 + 53.8 * Math.exp(-0.075 * r)),
+      weightAt: (orm, n) => orm * (48.8 + 53.8 * Math.exp(-0.075 * n)) / 100 },
+    { key: 'mayhew',   name: 'Mayhew',
+      oneRM: (w, r) => (100 * w) / (52.2 + 41.9 * Math.exp(-0.055 * r)),
+      weightAt: (orm, n) => orm * (52.2 + 41.9 * Math.exp(-0.055 * n)) / 100 },
+  ];
+
+  const weightInput = document.getElementById('weightInput');
+  const repsInput = document.getElementById('repsInput');
+  const oneRmDisplay = document.getElementById('oneRmDisplay');
+  const tableBody = document.getElementById('repTableBody');
+
+  function clampReps(r) {
+    r = Math.round(r);
+    if (r < 1) r = 1;
+    if (r > 15) r = 15;
+    return r;
+  }
+
+  function fmt(n) {
+    return n.toFixed(1);
+  }
+
+  function render() {
+    let w = parseFloat(weightInput.value);
+    let r = clampReps(parseFloat(repsInput.value) || 1);
+
+    if (isNaN(w) || w <= 0) w = 0;
+
+    const perFormulaOneRM = formulas.map(f => f.oneRM(w, r));
+    const avgOneRM = perFormulaOneRM.reduce((a, b) => a + b, 0) / formulas.length;
+
+    oneRmDisplay.textContent = fmt(avgOneRM);
+
+    let rowsHtml = '';
+    for (let n = 1; n <= 15; n++) {
+      const perFormulaWeights = formulas.map((f, i) => f.weightAt(perFormulaOneRM[i], n));
+      const avgWeight = perFormulaWeights.reduce((a, b) => a + b, 0) / formulas.length;
+      const isCurrent = n === r;
+
+      rowsHtml += `<tr class="${isCurrent ? 'current' : ''}">`;
+      rowsHtml += `<td>${n}</td>`;
+      rowsHtml += `<td class="avg-col">${fmt(avgWeight)}</td>`;
+      perFormulaWeights.forEach(val => {
+        rowsHtml += `<td>${fmt(val)}</td>`;
+      });
+      rowsHtml += `</tr>`;
+    }
+    tableBody.innerHTML = rowsHtml;
+  }
+
+  function step(input, delta, min, max) {
+    let val = parseFloat(input.value) || 0;
+    val = Math.round((val + delta) * 100) / 100;
+    if (min !== undefined) val = Math.max(min, val);
+    if (max !== undefined) val = Math.min(max, val);
+    input.value = val;
+    render();
+  }
+
+  document.getElementById('weightUp').addEventListener('click', () => step(weightInput, 2.5, 1));
+  document.getElementById('weightDown').addEventListener('click', () => step(weightInput, -2.5, 1));
+  document.getElementById('repsUp').addEventListener('click', () => step(repsInput, 1, 1, 15));
+  document.getElementById('repsDown').addEventListener('click', () => step(repsInput, -1, 1, 15));
+
+  weightInput.addEventListener('input', render);
+  repsInput.addEventListener('input', render);
+
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,463 @@
+/* Shared design system — dark theme, matches the one-rep max calculator */
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #17181A;
+  --surface: #1F2124;
+  --surface-2: #26292E;
+  --text: #ECE9E2;
+  --text-muted: #8C9096;
+  --accent: #D8B84A;
+  --accent-soft: rgba(216, 184, 74, 0.14);
+  --steel: #5B7A8C;
+  --steel-soft: rgba(91, 122, 140, 0.16);
+  --red: #E0685C;
+  --red-soft: rgba(224, 104, 92, 0.14);
+  --blue: #6FA8D8;
+  --blue-soft: rgba(111, 168, 216, 0.14);
+  --border: #34373C;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.wrap.wide { max-width: 980px; }
+
+a { color: var(--steel); }
+
+h1, h2, h3 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 0 6px;
+}
+
+h1 { font-size: clamp(1.4rem, 4vw, 2rem); }
+h2 { font-size: 1.2rem; font-weight: 500; margin-top: 1.6em; }
+h3 { font-size: 1.05rem; font-weight: 500; }
+
+p { line-height: 1.55; color: var(--text); }
+
+.sub, .small {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+strong { color: var(--accent); }
+
+/* ---------- Top navigation / hamburger ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(23, 24, 26, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+}
+
+.topbar .brand {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.topbar .brand span { color: var(--accent); }
+
+.menu-toggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.menu-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 1px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.menu-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.menu-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 40;
+}
+
+.nav-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(300px, 84vw);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 45;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-panel.open { transform: translateX(0); }
+
+.nav-panel .nav-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 8px 22px 12px;
+}
+
+.nav-panel a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 22px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.98rem;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.nav-panel a:hover {
+  background: var(--surface-2);
+}
+
+.nav-panel a.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.nav-panel a .icon {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  width: 1.2em;
+  text-align: center;
+}
+
+.nav-panel a.active .icon { color: var(--accent); }
+
+.nav-panel .nav-divider {
+  margin: 10px 22px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Cards & sections ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 20px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.section-head h2 { margin: 0; }
+
+/* ---------- Forms ---------- */
+
+label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+select,
+input[type="date"],
+input[type="number"],
+input[type="text"] {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+select:focus,
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.field-inline { display: flex; flex-direction: column; gap: 6px; }
+
+/* stepper control, matches the one-rep max calculator */
+.control {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.control button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.1rem;
+  width: 38px;
+  height: 40px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.control button:hover { color: var(--accent); background: var(--accent-soft); }
+
+.control input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.05rem;
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.control input:focus { outline: none; box-shadow: none; }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 6px 4px 0;
+  padding: 9px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(1px); }
+
+.btn.secondary {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn.danger {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.btn.danger:hover { filter: brightness(1.1); }
+
+.hidden { display: none !important; }
+
+/* ---------- Tables ---------- */
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+}
+
+thead th {
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  background: var(--surface-2);
+}
+
+tbody td {
+  text-align: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+/* ---------- Collapsible groups (session log / editor / analysis) ---------- */
+
+.group-container, .session-log {
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.group-header, .session-header {
+  background: var(--surface-2);
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.group-header:hover, .session-header:hover { color: var(--accent); }
+
+.group-header::after, .session-header::after {
+  content: '+';
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.group-header.open::after, .session-header.open::after { content: '\2212'; }
+
+.group-content, .session-content {
+  display: none;
+  padding: 16px;
+  background: var(--surface);
+}
+
+/* ---------- Analysis cards ---------- */
+
+.analysis-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+}
+
+.analysis-card:last-child { margin-bottom: 0; }
+
+.analysis-card h3 { margin: 0 0 10px; color: var(--text); }
+
+.history-table th, .history-table td { font-size: 0.82rem; }
+
+.recommendation {
+  font-weight: 600;
+  font-style: normal;
+  display: block;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.rec-reduce { color: var(--red); background: var(--red-soft); }
+.rec-increase { color: var(--accent); background: var(--accent-soft); }
+.rec-maintain { color: var(--blue); background: var(--blue-soft); }
+.rec-deload { color: var(--steel); background: var(--steel-soft); }
+
+/* ---------- Guide typography ---------- */
+
+.guide ul, .guide ol { padding-left: 1.3em; color: var(--text); }
+.guide li { margin-bottom: 4px; line-height: 1.5; }
+.guide .star { color: var(--accent); font-weight: bold; }
+
+footer.page {
+  margin-top: 48px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+footer.page a { color: var(--steel); }
+
+@media (max-width: 640px) {
+  .wrap { padding: 16px 14px 60px; }
+  .card { padding: 16px; }
+}

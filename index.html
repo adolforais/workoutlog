@@ -3,206 +3,63 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Adolfo's workout log</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 15px;
-      background-color: white; /* fallback */
-      background-image: url('background.jpg');
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-position: center center;
-    }
-
-    #mainContent {
-      background-color: rgba(255, 255, 255, 0.95);
-      padding: 15px;
-      border-radius: 18px;
-      color: black;
-      max-width: 700px;
-      margin: auto;
-      box-shadow: 0 0 12px 2px #e3bc60;
-    }
-
-    h1 {
-      color: #4a7d23;
-      margin-bottom: 18px;
-    }
-
-    label, select, input {
-      font-size: 1em;
-    }
-
-    input[type="date"],
-    select,
-    input[type="number"] {
-      background-color: #f9f9f9;
-      color: black;
-      border: 1px solid #999;
-      border-radius: 4px;
-      padding: 4px 6px;
-      box-sizing: border-box;
-      outline: none;
-    }
-
-    input[type="date"]:focus,
-    select:focus,
-    input[type="number"]:focus {
-      border-color: #4a90e2;
-      box-shadow: 0 0 4px #4a90e2;
-    }
-
-    /* For table horizontal scrolling */
-    .table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      min-width: 600px;
-      width: max-content;
-      max-width: none;
-      border-collapse: collapse;
-      margin-top: 10px;
-      color: black;
-      background-color: white;
-      border: 1px solid #ccc;
-    }
-
-    th, td {
-      border: 1px solid #bbb;
-      padding: 6px;
-      text-align: center;
-      color: black;
-      background-color: white;
-      min-width: 100px;
-    }
-
-    th {
-      background: #e0e0e0;
-    }
-
-    .btn {
-      margin: 10px 5px 10px 0;
-      padding: 6px 16px;
-      font-size: 1em;
-      color: white;
-      background-color: #4a7d23;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .btn:hover {
-      background-color: #3d661b;
-    }
-
-    .small {
-      font-size: 0.9em;
-      color: #666;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    /* Folding session logs */
-    .session-log {
-      border: 1px solid #bbb;
-      margin-bottom: 10px;
-      border-radius: 6px;
-      overflow: hidden;
-      background-color: #f9f9f9;
-      color: black;
-    }
-
-    .session-header {
-      background-color: #e0e0e0;
-      padding: 8px 12px;
-      cursor: pointer;
-      user-select: none;
-      font-weight: bold;
-      color: black;
-    }
-
-    .session-content {
-      display: none;
-      padding: 10px 12px;
-      background-color: #fff;
-    }
-
-        /* Styling for the new analysis link and its container */
-    .log-header-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 25px; /* Adds some space above the log section */
-      margin-bottom: 10px;
-    }
-
-    /* We remove the default margin from h2 since the container handles it */
-    #mainContent h2 {
-        margin-top: 0;
-        margin-bottom: 0;
-    }
-
-    .analysis-link {
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.9em;
-      color: #4a7d23;
-      padding: 8px 12px;
-      border: 1px solid #c0e0ac;
-      border-radius: 6px;
-      background-color: #f4f9f1;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .analysis-link:hover {
-      background-color: #4a7d23;
-      border-color: #4a7d23;
-      color: white;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-  </style>
+  <title>Adolfo's Workout Log</title>
+  <link rel="stylesheet" href="style.css">
   <script src="workout_program.js"></script>
 </head>
 <body>
-  <div id="mainContent">
-    <h1><a href="guide.html" target="_blank" style="text-decoration:none; color: inherit;">Adolfo's custom workout log</a></h1>
-    <form id="logForm">
-      <label>Date: <input type="date" id="date" required></label><br /><br />
-      <label>Week:
-        <select id="week" required>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-        </select>
-      </label>
-      <label style="margin-left: 1em">Day:
-        <select id="day" required></select>
-      </label>
-      <button type="button" class="btn" onclick="generateTable()">Show Exercises</button>
-    </form>
-    <div id="session"></div>
-    <hr />
-    
-        <!-- New section for the log header -->
-    <div class="log-header-container">
+  <div id="siteNav"></div>
+  <div class="wrap wide">
+    <header class="page">
+      <h1>Adolfo's workout log</h1>
+      <p class="sub">Pick a week and day, log today's sets, and review past sessions below.</p>
+    </header>
+
+    <div class="card">
+      <form id="logForm">
+        <div class="field-row">
+          <div class="field-inline">
+            <label for="date">Date</label>
+            <input type="date" id="date" required>
+          </div>
+          <div class="field-inline">
+            <label for="week">Week</label>
+            <select id="week" required>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <div class="field-inline">
+            <label for="day">Day</label>
+            <select id="day" required></select>
+          </div>
+          <button type="button" class="btn" onclick="generateTable()">Show Exercises</button>
+        </div>
+      </form>
+      <div id="session"></div>
+    </div>
+
+    <div class="section-head">
       <h2>Session Log</h2>
-      <a href="analysis.html" class="analysis-link" target="_blank" rel="noopener noreferrer">View Performance Analysis →</a>
+      <a href="analysis.html" class="btn secondary">View Performance Analysis &rarr;</a>
     </div>
 
     <div id="log"></div>
-    <button onclick="clearLog()" class="btn">Clear All Logs</button>
-    <button onclick="exportJSON()" class="btn">Export Log (JSON)</button>
-    <button onclick="importJSON()" class="btn">Import Log (JSON)</button>
-    <input type="file" id="importFile" class="hidden" accept=".json" onchange="handleFileImport(event)" />
+    <div style="margin-top: 16px;">
+      <button onclick="clearLog()" class="btn danger">Clear All Logs</button>
+      <button onclick="exportJSON()" class="btn secondary">Export Log (JSON)</button>
+      <button onclick="importJSON()" class="btn secondary">Import Log (JSON)</button>
+      <input type="file" id="importFile" class="hidden" accept=".json" onchange="handleFileImport(event)" />
+    </div>
+
+    <footer class="page">
+      Logs are stored locally in this browser. Export regularly if you want a backup.
+    </footer>
   </div>
 
+  <script src="nav.js"></script>
   <script>
     function renderDayOptions() {
       const daySelect = document.getElementById('day');
@@ -231,7 +88,7 @@
         week + 1
       }</h3>`;
       html += `<form id='sessionForm' onsubmit='saveSession(event)'>`;
-      html += `<div class="table-wrapper"><table><tr><th>Exercise</th><th>Weight</th>`;
+      html += `<div class="table-scroll"><table><tr><th>Exercise</th><th>Weight</th>`;
 
       let maxSets = Math.max(...exercises.map((e) => e.sets[week]));
       for (let s = 1; s <= maxSets; ++s)
@@ -252,7 +109,6 @@
       sessionDiv.innerHTML = html;
     }
 
-    
     function saveSession(event) {
       event.preventDefault();
       const date = document.getElementById('date').value;
@@ -271,24 +127,23 @@
       let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
       allLogs.push(entry);
       localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
-      document.getElementById('session').innerHTML = '<b>Session saved!</b>';
+      document.getElementById('session').innerHTML = '<p><strong>Session saved!</strong></p>';
       renderLog();
     }
 
     function toggleSession(id) {
       const el = document.getElementById(id);
-      if (el.style.display === 'block') {
-        el.style.display = 'none';
-      } else {
-        el.style.display = 'block';
-      }
+      const header = document.querySelector(`[data-target="${id}"]`);
+      const isOpen = el.style.display === 'block';
+      el.style.display = isOpen ? 'none' : 'block';
+      if (header) header.classList.toggle('open', !isOpen);
     }
 
     function renderLog() {
       const out = document.getElementById('log');
       let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
       if (!allLogs.length) {
-        out.innerHTML = '<i>No sessions logged yet.</i>';
+        out.innerHTML = '<p class="sub">No sessions logged yet.</p>';
         return;
       }
 
@@ -298,8 +153,8 @@
         const contentId = `sessionContent_${idx}`;
 
         html += `<div class="session-log">`;
-        html += `<div class="session-header" onclick="toggleSession('${contentId}')">${headerText}</div>`;
-        html += `<div class="session-content" id="${contentId}"><div class="table-wrapper"><table><tr><th>Exercise</th><th>Weight</th>`;
+        html += `<div class="session-header" data-target="${contentId}" onclick="toggleSession('${contentId}')">${headerText}</div>`;
+        html += `<div class="session-content" id="${contentId}"><div class="table-scroll"><table><tr><th>Exercise</th><th>Weight</th>`;
 
         let sets = e.log.map((x) => x.reps.length);
         let maxSets = Math.max(...sets);
