@@ -23,17 +23,9 @@
 
   <script src="nav.js"></script>
   <script>
-    function toggleGroup(contentId) {
-      const el = document.getElementById(contentId);
-      const header = document.querySelector(`[data-target="${contentId}"]`);
-      const isOpen = el.style.display === 'block';
-      el.style.display = isOpen ? 'none' : 'block';
-      if (header) header.classList.toggle('open', !isOpen);
-    }
-
     function renderEditor() {
       const editorDiv = document.getElementById('editor');
-      let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      let allLogs = getLogs();
       if (!allLogs.length) {
         editorDiv.innerHTML = '<p class="sub">No sessions logged yet.</p>';
         return;
@@ -62,10 +54,10 @@
               <div class="group-content" id="${contentId}">
           `;
 
-          groupedLogs[day].sort((a, b) => new Date(b.date) - new Date(a.date));
+          groupedLogs[day].sort(byDateDesc);
 
           groupedLogs[day].forEach(session => {
-            const maxSets = Math.max(...session.log.map(ex => ex.reps.length));
+            const maxSets = maxSetsLogged(session);
             html += `
             <div class="card" style="border-left: 3px solid var(--accent); margin-bottom: 15px;">
               <div style="font-weight: 600; margin-bottom: 10px;">
@@ -102,7 +94,7 @@
     }
 
     function saveChanges(index) {
-      let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      let allLogs = getLogs();
       const session = allLogs[index];
 
       session.date = document.getElementById(`date_${index}`).value;
@@ -114,28 +106,28 @@
         });
       });
 
-      localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+      saveLogs(allLogs);
       alert('Session updated!');
       renderEditor();
     }
 
     function deleteSession(index) {
         if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-            let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+            let allLogs = getLogs();
             allLogs.splice(index, 1);
-            localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+            saveLogs(allLogs);
             alert('Session deleted!');
             renderEditor();
         }
     }
 
     function exportJSON() {
-        let allLogs = localStorage.getItem('hypertrophyLogs');
+        let allLogs = localStorage.getItem(LOGS_KEY);
         if (!allLogs) {
             alert('No sessions to export!');
             return;
         }
-        const safeDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const safeDate = todayISO().replace(/-/g, '');
         const filename = `log_edited_${safeDate}.json`;
 
         let blob = new Blob([allLogs], { type: 'application/json' });

@@ -79,7 +79,7 @@
     let currentSessionIndex = null;
 
     function findExistingSession(date, day) {
-      const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      const allLogs = getLogs();
       let match = null;
       allLogs.forEach((log, index) => {
         if (log.date === date && log.day === day) match = { log, index };
@@ -101,8 +101,7 @@
     function generateTable() {
       const dateInput = document.getElementById('date');
       if (!dateInput.value) {
-        const today = new Date().toISOString().slice(0, 10);
-        dateInput.value = today;
+        dateInput.value = todayISO();
       }
 
       const date = dateInput.value;
@@ -167,18 +166,18 @@
         }
         entry.log.push(exObj);
       });
-      let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      let allLogs = getLogs();
       if (currentSessionIndex !== null && allLogs[currentSessionIndex]) {
         allLogs[currentSessionIndex] = entry;
       } else {
         allLogs.push(entry);
         currentSessionIndex = allLogs.length - 1;
       }
-      localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
+      saveLogs(allLogs);
       const status = document.getElementById('saveStatus');
       if (status) status.textContent = `Saved at ${new Date().toLocaleTimeString()}`;
 
-      calendarViewDate = new Date(`${date}T00:00:00`);
+      calendarViewDate = parseLocalDate(date);
       selectedDayDate = date;
       refreshLogViews();
     }
@@ -229,7 +228,7 @@
       const month = calendarViewDate.getMonth();
       label.textContent = calendarViewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
-      const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      const allLogs = getLogs();
       const logsByDate = {};
       allLogs.forEach((log) => {
         if (!logsByDate[log.date]) logsByDate[log.date] = [];
@@ -239,7 +238,7 @@
       const firstOfMonth = new Date(year, month, 1);
       const startOffset = firstOfMonth.getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = todayISO();
 
       let html = `<div class="calendar-weekdays">${['S', 'M', 'T', 'W', 'T', 'F', 'S']
         .map((d) => `<div>${d}</div>`)
@@ -275,14 +274,14 @@
         el.innerHTML = '';
         return;
       }
-      const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      const allLogs = getLogs();
       const sessions = allLogs.filter((log) => log.date === selectedDayDate);
       if (!sessions.length) {
         el.innerHTML = '';
         return;
       }
 
-      const dateLabel = new Date(`${selectedDayDate}T00:00:00`).toLocaleDateString(undefined, {
+      const dateLabel = parseLocalDate(selectedDayDate).toLocaleDateString(undefined, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -296,8 +295,7 @@
         html += `<div style="font-weight: 600; margin: 14px 0 8px;">Week ${e.week} | ${programDays[e.day] || e.day}</div>`;
         html += `<div class="table-scroll"><table><tr><th>Exercise</th><th>Weight</th>`;
 
-        let sets = e.log.map((x) => x.reps.length);
-        let maxSets = Math.max(...sets);
+        let maxSets = maxSetsLogged(e);
         for (let i = 1; i <= maxSets; ++i) html += `<th>Set ${i} reps</th>`;
         html += `</tr>`;
 
@@ -316,14 +314,14 @@
 
     function clearLog() {
       if (confirm('Clear ALL logs?')) {
-        localStorage.removeItem('hypertrophyLogs');
+        clearLogs();
         selectedDayDate = null;
         refreshLogViews();
       }
     }
 
     function exportJSON() {
-      let allLogs = localStorage.getItem('hypertrophyLogs');
+      let allLogs = localStorage.getItem(LOGS_KEY);
       if (!allLogs) {
         alert('No sessions to export!');
         return;
@@ -361,7 +359,7 @@
           let logs = JSON.parse(e.target.result);
           if (!Array.isArray(logs)) throw 'Invalid format';
           if (!confirm('Overwrite your current log with the imported file?')) return;
-          localStorage.setItem('hypertrophyLogs', JSON.stringify(logs));
+          saveLogs(logs);
           selectedDayDate = null;
           refreshLogViews();
           alert('Log imported!');

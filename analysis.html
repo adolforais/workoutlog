@@ -19,14 +19,6 @@
 
   <script src="nav.js"></script>
   <script>
-    function toggleGroup(contentId) {
-      const el = document.getElementById(contentId);
-      const header = document.querySelector(`[data-target="${contentId}"]`);
-      const isOpen = el.style.display === 'block';
-      el.style.display = isOpen ? 'none' : 'block';
-      if (header) header.classList.toggle('open', !isOpen);
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
       const rirTargets = ["2-3", "2", "1", "3-4"];
 
@@ -113,8 +105,7 @@
             index: i,
             date: entry.date,
             week: parseInt(entry.week),
-            weight: parseFloat(foundEx.weight),
-            reps: (foundEx.reps || []).map(r => parseInt(r))
+            ...parseLoggedExercise(foundEx),
           });
         }
         return out; // chronological order, earliest to latest
@@ -132,8 +123,7 @@
             return {
               date: entry.date,
               week: w,
-              weight: parseFloat(foundEx.weight),
-              reps: foundEx.reps.map(r => parseInt(r))
+              ...parseLoggedExercise(foundEx),
             };
           }
         }
@@ -167,8 +157,7 @@
             lastSession = {
               date: allLogs[i].date,
               week: parseInt(allLogs[i].week),
-              weight: parseFloat(foundEx.weight),
-              reps: foundEx.reps.map(r => parseInt(r))
+              ...parseLoggedExercise(foundEx),
             };
             break;
           }
@@ -182,7 +171,7 @@
         const nextWeek = lastSession.week >= 4 ? 1 : lastSession.week + 1;
 
         const recentSessions = collectExerciseSessions(exerciseName, allLogs).slice(-10);
-        const sessionsToDisplay = [...recentSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sessionsToDisplay = [...recentSessions].sort(byDateDesc);
 
         let historyHTML = '';
         if (sessionsToDisplay.length > 0) {
@@ -278,7 +267,7 @@
 
       function generateFullReport() {
         const reportDiv = document.getElementById('analysisReport');
-        const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+        const allLogs = getLogs();
 
         if (allLogs.length === 0) {
           reportDiv.innerHTML = '<p class="sub">No logs found. Go to the main page and save a session first.</p>';

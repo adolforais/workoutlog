@@ -57,3 +57,56 @@ const program = {
       { name: "Leg-press calf raise", sets: [4,5,6,3], reps: ["12-15","12-15","12-15","12-15"] },
     ],
   };
+
+// ---------- Shared helpers (used by index.html, editor.html, analysis.html) ----------
+// Centralized here so the three pages read/write/parse logged sessions the same way
+// instead of each keeping its own copy.
+
+const LOGS_KEY = 'hypertrophyLogs';
+
+function getLogs() {
+  return JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+}
+
+function saveLogs(logs) {
+  localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+}
+
+function clearLogs() {
+  localStorage.removeItem(LOGS_KEY);
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Parses a plain 'YYYY-MM-DD' string as local midnight, avoiding the UTC
+// off-by-one-day shift that `new Date('YYYY-MM-DD')` can produce.
+function parseLocalDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00`);
+}
+
+function byDateDesc(a, b) {
+  return new Date(b.date) - new Date(a.date);
+}
+
+// Highest number of logged sets across a session's exercises (for table column count).
+function maxSetsLogged(session) {
+  return Math.max(...session.log.map((ex) => ex.reps.length));
+}
+
+// Coerces a logged exercise entry's string fields (weight, reps) to numbers.
+function parseLoggedExercise(foundEx) {
+  return {
+    weight: parseFloat(foundEx.weight),
+    reps: (foundEx.reps || []).map((r) => parseInt(r)),
+  };
+}
+
+function toggleGroup(contentId) {
+  const el = document.getElementById(contentId);
+  const header = document.querySelector(`[data-target="${contentId}"]`);
+  const isOpen = el.style.display === 'block';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (header) header.classList.toggle('open', !isOpen);
+}
