@@ -46,7 +46,22 @@
       <a href="analysis.html" class="btn secondary">View Performance Analysis &rarr;</a>
     </div>
 
-    <div id="log"></div>
+    <div class="card">
+      <div class="calendar-header">
+        <button type="button" class="btn secondary" onclick="changeMonth(-1)">&larr;</button>
+        <h3 id="calendarLabel"></h3>
+        <button type="button" class="btn secondary" onclick="changeMonth(1)">&rarr;</button>
+      </div>
+      <div id="calendarGrid"></div>
+      <div class="calendar-legend small">
+        <span class="day-badge day-push">Ps</span> Push
+        <span class="day-badge day-pull">Pl</span> Pull
+        <span class="day-badge day-lower">Lo</span> Lower
+      </div>
+    </div>
+
+    <div id="dayDetail"></div>
+
     <div style="margin-top: 16px;">
       <button onclick="clearLog()" class="btn danger">Clear All Logs</button>
       <button onclick="exportJSON()" class="btn secondary">Export Log (JSON)</button>
@@ -162,33 +177,124 @@
       localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
       const status = document.getElementById('saveStatus');
       if (status) status.textContent = `Saved at ${new Date().toLocaleTimeString()}`;
-      renderLog();
+
+      calendarViewDate = new Date(`${date}T00:00:00`);
+      selectedDayDate = date;
+      refreshLogViews();
     }
 
-    function toggleSession(id) {
-      const el = document.getElementById(id);
-      const header = document.querySelector(`[data-target="${id}"]`);
-      const isOpen = el.style.display === 'block';
-      el.style.display = isOpen ? 'none' : 'block';
-      if (header) header.classList.toggle('open', !isOpen);
+    let calendarViewDate = new Date();
+    let selectedDayDate = null;
+
+    function pad2(n) {
+      return String(n).padStart(2, '0');
     }
 
-    function renderLog() {
-      const out = document.getElementById('log');
-      let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
-      if (!allLogs.length) {
-        out.innerHTML = '<p class="sub">No sessions logged yet.</p>';
+    function dayTypeCode(day) {
+      const label = programDays[day] || day;
+      const words = label.split(' ');
+      const prefixes = { push: 'Ps', pull: 'Pl', lower: 'Lo' };
+      const prefix = prefixes[words[0].toLowerCase()] || words[0].slice(0, 2);
+      return words.length > 1 ? prefix + words[1][0] : label.slice(0, 3);
+    }
+
+    function dayTypeColorClass(day) {
+      const label = (programDays[day] || day).toLowerCase();
+      if (label.startsWith('push')) return 'day-push';
+      if (label.startsWith('pull')) return 'day-pull';
+      if (label.startsWith('lower')) return 'day-lower';
+      return '';
+    }
+
+    function changeMonth(delta) {
+      calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + delta, 1);
+      renderCalendar();
+    }
+
+    function selectDay(dateStr) {
+      selectedDayDate = selectedDayDate === dateStr ? null : dateStr;
+      renderCalendar();
+      renderDayDetail();
+    }
+
+    function refreshLogViews() {
+      renderCalendar();
+      renderDayDetail();
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      const label = document.getElementById('calendarLabel');
+      const year = calendarViewDate.getFullYear();
+      const month = calendarViewDate.getMonth();
+      label.textContent = calendarViewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+      const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      const logsByDate = {};
+      allLogs.forEach((log) => {
+        if (!logsByDate[log.date]) logsByDate[log.date] = [];
+        logsByDate[log.date].push(log);
+      });
+
+      const firstOfMonth = new Date(year, month, 1);
+      const startOffset = firstOfMonth.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      let html = `<div class="calendar-weekdays">${['S', 'M', 'T', 'W', 'T', 'F', 'S']
+        .map((d) => `<div>${d}</div>`)
+        .join('')}</div>`;
+      html += `<div class="calendar-days">`;
+      for (let i = 0; i < startOffset; ++i) html += `<div class="calendar-day empty"></div>`;
+      for (let d = 1; d <= daysInMonth; ++d) {
+        const dateStr = `${year}-${pad2(month + 1)}-${pad2(d)}`;
+        const sessions = logsByDate[dateStr];
+        let classes = 'calendar-day';
+        if (dateStr === todayStr) classes += ' today';
+        if (sessions) classes += ' has-session';
+        if (dateStr === selectedDayDate) classes += ' selected';
+        html += `<div class="${classes}" ${sessions ? `onclick="selectDay('${dateStr}')"` : ''}>`;
+        html += `<span class="day-num">${d}</span>`;
+        if (sessions) {
+          html += `<div class="day-badges">`;
+          sessions.slice(0, 2).forEach((s) => {
+            html += `<span class="day-badge ${dayTypeColorClass(s.day)}">${dayTypeCode(s.day)}</span>`;
+          });
+          if (sessions.length > 2) html += `<span class="day-badge">+${sessions.length - 2}</span>`;
+          html += `</div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+      grid.innerHTML = html;
+    }
+
+    function renderDayDetail() {
+      const el = document.getElementById('dayDetail');
+      if (!selectedDayDate) {
+        el.innerHTML = '';
+        return;
+      }
+      const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      const sessions = allLogs.filter((log) => log.date === selectedDayDate);
+      if (!sessions.length) {
+        el.innerHTML = '';
         return;
       }
 
-      let html = '';
-      allLogs.slice().reverse().forEach((e, idx) => {
-        const headerText = `${e.date} | Week ${e.week} | ${programDays[e.day] || e.day}`;
-        const contentId = `sessionContent_${idx}`;
+      const dateLabel = new Date(`${selectedDayDate}T00:00:00`).toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
 
-        html += `<div class="session-log">`;
-        html += `<div class="session-header" data-target="${contentId}" onclick="toggleSession('${contentId}')">${headerText}</div>`;
-        html += `<div class="session-content" id="${contentId}"><div class="table-scroll"><table><tr><th>Exercise</th><th>Weight</th>`;
+      let html = `<div class="card">`;
+      html += `<div class="section-head" style="margin-top: 0;"><h3 style="margin: 0;">${dateLabel}</h3><button type="button" class="btn secondary" onclick="selectDay('${selectedDayDate}')">Close</button></div>`;
+
+      sessions.forEach((e) => {
+        html += `<div style="font-weight: 600; margin: 14px 0 8px;">Week ${e.week} | ${programDays[e.day] || e.day}</div>`;
+        html += `<div class="table-scroll"><table><tr><th>Exercise</th><th>Weight</th>`;
 
         let sets = e.log.map((x) => x.reps.length);
         let maxSets = Math.max(...sets);
@@ -201,16 +307,18 @@
           for (let s = ex.reps.length; s < maxSets; ++s) html += `<td></td>`;
           html += `</tr>`;
         });
-        html += `</table></div></div></div>`;
+        html += `</table></div>`;
       });
 
-      out.innerHTML = html;
+      html += `</div>`;
+      el.innerHTML = html;
     }
 
     function clearLog() {
       if (confirm('Clear ALL logs?')) {
         localStorage.removeItem('hypertrophyLogs');
-        renderLog();
+        selectedDayDate = null;
+        refreshLogViews();
       }
     }
 
@@ -254,7 +362,8 @@
           if (!Array.isArray(logs)) throw 'Invalid format';
           if (!confirm('Overwrite your current log with the imported file?')) return;
           localStorage.setItem('hypertrophyLogs', JSON.stringify(logs));
-          renderLog();
+          selectedDayDate = null;
+          refreshLogViews();
           alert('Log imported!');
         } catch {
           alert('Invalid file or format.');
@@ -265,7 +374,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
       renderDayOptions();
-      renderLog();
+      refreshLogViews();
     });
   </script>
 </body>

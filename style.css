@@ -16,6 +16,8 @@
   --red-soft: rgba(224, 104, 92, 0.14);
   --blue: #6FA8D8;
   --blue-soft: rgba(111, 168, 216, 0.14);
+  --green: #8FCB7E;
+  --green-soft: rgba(143, 203, 126, 0.14);
   --border: #34373C;
   --radius: 10px;
 }
@@ -407,6 +409,98 @@ tbody tr:last-child td { border-bottom: none; }
   display: none;
   padding: 16px;
   background: var(--surface);
+}
+
+/* ---------- Calendar ---------- */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.calendar-header h3 { margin: 0; }
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.calendar-weekdays div {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  min-height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 5px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.calendar-day.empty { background: transparent; border-color: transparent; }
+
+.calendar-day.has-session { cursor: pointer; }
+.calendar-day.has-session:hover { border-color: var(--accent); }
+
+.calendar-day.today .day-num { color: var(--accent); font-weight: 700; }
+
+.calendar-day.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.day-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.day-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.day-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.day-badge.day-push { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.day-badge.day-pull { color: var(--blue); background: var(--blue-soft); border-color: transparent; }
+.day-badge.day-lower { color: var(--green); background: var(--green-soft); border-color: transparent; }
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .calendar-day { min-height: 46px; padding: 4px 3px; }
+  .day-badge { font-size: 0.55rem; }
 }
 
 /* ---------- Analysis cards ---------- */
