@@ -139,10 +139,10 @@
         const savedEx = savedExercises ? savedExercises.find((x) => x.name === ex.name) : null;
         const savedWeight = savedEx && savedEx.weight !== '0' ? savedEx.weight : '';
         html += `<tr><td>${ex.name}<br><span class='small'>${ex.sets[week]} × ${ex.reps[week]}</span></td>`;
-        html += `<td><input type='number' min='0' max='999' step='any' name='w_${ex.name}' placeholder='kg' value='${savedWeight}'></td>`;
+        html += `<td><input type='number' min='0' max='999' step='any' name='w_${ex.name}' placeholder='kg' value='${savedWeight}' class='qty-input'></td>`;
         for (let s = 0; s < ex.sets[week]; ++s) {
           const savedRep = savedEx && savedEx.reps[s] !== undefined && savedEx.reps[s] !== '0' ? savedEx.reps[s] : '';
-          html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s + 1}' placeholder='Reps' value='${savedRep}'></td>`;
+          html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s + 1}' placeholder='Reps' value='${savedRep}' class='qty-input'></td>`;
         }
         for (let s = ex.sets[week]; s < maxSets; ++s) html += `<td class='hidden'></td>`;
         html += `</tr>`;

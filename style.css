@@ -256,6 +256,8 @@ input[type="number"] {
   appearance: textfield;
 }
 
+.qty-input { width: 72px; }
+
 .field-row {
   display: flex;
   flex-wrap: wrap;
