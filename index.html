@@ -61,6 +61,17 @@
 
   <script src="nav.js"></script>
   <script>
+    let currentSessionIndex = null;
+
+    function findExistingSession(date, day) {
+      const allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
+      let match = null;
+      allLogs.forEach((log, index) => {
+        if (log.date === date && log.day === day) match = { log, index };
+      });
+      return match;
+    }
+
     function renderDayOptions() {
       const daySelect = document.getElementById('day');
       daySelect.innerHTML = '';
@@ -79,14 +90,28 @@
         dateInput.value = today;
       }
 
-      const week = parseInt(document.getElementById('week').value) - 1;
+      const date = dateInput.value;
       const day = document.getElementById('day').value;
+      const existing = findExistingSession(date, day);
+
+      if (existing) {
+        document.getElementById('week').value = existing.log.week;
+        currentSessionIndex = existing.index;
+      } else {
+        currentSessionIndex = null;
+      }
+
+      const week = parseInt(document.getElementById('week').value) - 1;
       const sessionDiv = document.getElementById('session');
       const exercises = program[day];
+      const savedExercises = existing ? existing.log.log : null;
 
       let html = `<h3>${document.getElementById('day').options[document.getElementById('day').selectedIndex].text} - Week ${
         week + 1
       }</h3>`;
+      if (existing) {
+        html += `<p class="small">Resumed from a previously saved session for this date &amp; day.</p>`;
+      }
       html += `<form id='sessionForm' onsubmit='saveSession(event)'>`;
       html += `<div class="table-scroll"><table><tr><th>Exercise</th><th>Weight</th>`;
 
@@ -96,16 +121,19 @@
       html += `</tr>`;
 
       exercises.forEach((ex) => {
+        const savedEx = savedExercises ? savedExercises.find((x) => x.name === ex.name) : null;
+        const savedWeight = savedEx && savedEx.weight !== '0' ? savedEx.weight : '';
         html += `<tr><td>${ex.name}<br><span class='small'>${ex.sets[week]} × ${ex.reps[week]}</span></td>`;
-        html += `<td><input type='number' min='0' max='999' step='0.5' name='w_${ex.name}' placeholder='kg' required></td>`;
+        html += `<td><input type='number' min='0' max='999' step='0.5' name='w_${ex.name}' placeholder='kg' value='${savedWeight}'></td>`;
         for (let s = 0; s < ex.sets[week]; ++s) {
-          html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s + 1}' placeholder='Reps' required></td>`;
+          const savedRep = savedEx && savedEx.reps[s] !== undefined && savedEx.reps[s] !== '0' ? savedEx.reps[s] : '';
+          html += `<td><input type='number' min='0' max='99' name='r_${ex.name}_${s + 1}' placeholder='Reps' value='${savedRep}'></td>`;
         }
         for (let s = ex.sets[week]; s < maxSets; ++s) html += `<td class='hidden'></td>`;
         html += `</tr>`;
       });
       html += `</table></div><br>`;
-      html += `<button type='submit' class='btn'>Save Session</button></form>`;
+      html += `<button type='submit' class='btn'>Save Progress</button> <span id='saveStatus' class='small'></span></form>`;
       sessionDiv.innerHTML = html;
     }
 
@@ -118,16 +146,22 @@
       const exercises = program[day];
       let entry = { date, week, day, log: [] };
       exercises.forEach((ex) => {
-        let exObj = { name: ex.name, weight: form[`w_${ex.name}`].value, reps: [] };
+        let exObj = { name: ex.name, weight: form[`w_${ex.name}`].value || '0', reps: [] };
         for (let s = 1; s <= ex.sets[week - 1]; ++s) {
-          exObj.reps.push(form[`r_${ex.name}_${s}`].value);
+          exObj.reps.push(form[`r_${ex.name}_${s}`].value || '0');
         }
         entry.log.push(exObj);
       });
       let allLogs = JSON.parse(localStorage.getItem('hypertrophyLogs') || '[]');
-      allLogs.push(entry);
+      if (currentSessionIndex !== null && allLogs[currentSessionIndex]) {
+        allLogs[currentSessionIndex] = entry;
+      } else {
+        allLogs.push(entry);
+        currentSessionIndex = allLogs.length - 1;
+      }
       localStorage.setItem('hypertrophyLogs', JSON.stringify(allLogs));
-      document.getElementById('session').innerHTML = '<p><strong>Session saved!</strong></p>';
+      const status = document.getElementById('saveStatus');
+      if (status) status.textContent = `Saved at ${new Date().toLocaleTimeString()}`;
       renderLog();
     }
 
