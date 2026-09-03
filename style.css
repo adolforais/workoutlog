@@ -244,6 +244,18 @@ input:focus {
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+/* Hide the increment/decrement spinner on number inputs everywhere */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .field-row {
   display: flex;
   flex-wrap: wrap;
@@ -519,6 +531,46 @@ tbody tr:last-child td { border-bottom: none; }
 .analysis-card h3 { margin: 0 0 10px; color: var(--text); }
 
 .history-table th, .history-table td { font-size: 0.82rem; }
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.stat-value {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 1.3rem;
+  color: var(--text);
+}
+
+.stat-delta {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.stat-delta.up { color: var(--accent); }
+.stat-delta.down { color: var(--red); }
+.stat-delta.flat { color: var(--text-muted); }
+
+.stat-sparkline { flex-shrink: 0; }
+
+.spark-line {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.spark-dot { fill: var(--text-muted); }
+.spark-dot.current { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
 
 .recommendation {
   font-weight: 600;

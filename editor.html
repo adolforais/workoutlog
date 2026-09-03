@@ -81,7 +81,7 @@
                   ${session.log.map((ex, exIndex) => `
                     <tr>
                       <td>${ex.name}</td>
-                      <td><input type="number" id="weight_${session.originalIndex}_${exIndex}" value="${ex.weight}" step="0.5" style="width: 80px;"></td>
+                      <td><input type="number" id="weight_${session.originalIndex}_${exIndex}" value="${ex.weight}" step="any" style="width: 80px;"></td>
                       ${ex.reps.map((rep, repIndex) => `<td><input type="number" id="rep_${session.originalIndex}_${exIndex}_${repIndex}" value="${rep}" style="width: 64px;"></td>`).join('')}
                       ${Array.from({ length: maxSets - ex.reps.length }, () => '<td></td>').join('')}
                     </tr>

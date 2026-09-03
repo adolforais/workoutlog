@@ -49,6 +49,60 @@
         return Math.round((x || 0) / s) * s;
       }
 
+      // Same six formulas as the One-Rep Max Calculator (onerepmax.html), averaged.
+      const oneRmFormulas = [
+        (w, r) => w * (1 + r / 30),                                   // Epley
+        (w, r) => w * 36 / (37 - r),                                  // Brzycki
+        (w, r) => w * Math.pow(r, 0.10),                              // Lombardi
+        (w, r) => w * (1 + 0.025 * r),                                // O'Conner
+        (w, r) => (100 * w) / (48.8 + 53.8 * Math.exp(-0.075 * r)),   // Wathan
+        (w, r) => (100 * w) / (52.2 + 41.9 * Math.exp(-0.055 * r)),   // Mayhew
+      ];
+
+      function meanReps(reps) {
+        if (!reps || !reps.length) return 0;
+        return reps.reduce((a, b) => a + b, 0) / reps.length;
+      }
+
+      function estimateOneRM(weight, reps) {
+        const r = meanReps(reps);
+        if (!weight || !r) return 0;
+        const vals = oneRmFormulas.map(f => f(weight, r));
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      }
+
+      function renderTrendSparkline(sessions) {
+        const points = sessions
+          .map(s => ({ date: s.date, value: estimateOneRM(s.weight, s.reps) }))
+          .filter(p => p.value > 0);
+        if (points.length < 2) return '';
+
+        const width = 140, height = 36, pad = 6;
+        const values = points.map(p => p.value);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+        const lastIdx = points.length - 1;
+
+        const coords = points.map((p, i) => ({
+          x: pad + (i * (width - 2 * pad)) / lastIdx,
+          y: height - pad - ((p.value - min) / range) * (height - 2 * pad),
+          date: p.date,
+          value: p.value,
+        }));
+
+        const linePoints = coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+
+        let svg = `<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Estimated one-rep max trend across ${points.length} sessions, from ${values[0].toFixed(1)} to ${values[lastIdx].toFixed(1)} kg">`;
+        svg += `<polyline class="spark-line" points="${linePoints}" />`;
+        coords.forEach((c, i) => {
+          const isLast = i === lastIdx;
+          svg += `<circle class="spark-dot${isLast ? ' current' : ''}" cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${isLast ? 4 : 2}"><title>${c.date}: ${c.value.toFixed(1)} kg est. 1RM</title></circle>`;
+        });
+        svg += `</svg>`;
+        return svg;
+      }
+
       function collectExerciseSessions(exerciseName, allLogs) {
         const out = [];
         for (let i = 0; i < allLogs.length; i++) {
@@ -85,48 +139,6 @@
         }
         return null;
       }
-
-     function getHistoryForDisplay(exerciseName, allLogs, lastSession, nextWeek) {
-        const sessions = collectExerciseSessions(exerciseName, allLogs);
-        if (sessions.length === 0) return [];
-
-        function lastThreeBefore(endIdx) {
-            const out = [];
-            for (let i = endIdx - 1; i >= 0 && out.length < 3; i--) {
-            const w = sessions[i].week;
-            if (w >= 1 && w <= 3) out.push(sessions[i]);
-            }
-            return out.reverse();
-        }
-
-        const lastIdx = sessions.findIndex(
-            s => s.week === lastSession.week &&
-                s.date === lastSession.date &&
-                s.weight === lastSession.weight
-        );
-
-        const endIdx = lastIdx >= 0 ? lastIdx : sessions.length;
-
-        if (lastSession.week === 3 && nextWeek === 4) {
-            const want = [1, 2, 3];
-            const found = {1: null, 2: null, 3: null};
-            for (let i = endIdx - 1; i >= 0; i--) {
-            const w = sessions[i].week;
-            if (w >= 1 && w <= 3 && found[w] === null) {
-                found[w] = sessions[i];
-                if (found[1] && found[2] && found[3]) break;
-            } else if (w === 4) {
-                break;
-            }
-            }
-            const seq = want.map(w => found[w]).filter(Boolean);
-            return seq.length === 3 ? seq : lastThreeBefore(endIdx);
-        }
-
-        const hist = lastThreeBefore(endIdx);
-        return hist;
-    }
-
 
       // Returns [lowKg, highKg, noteText]
       function deloadRangeFor(exName, lastWeight) {
@@ -169,17 +181,41 @@
         let recommendationHTML = '';
         const nextWeek = lastSession.week >= 4 ? 1 : lastSession.week + 1;
 
-        const history = getHistoryForDisplay(exerciseName, allLogs, lastSession, nextWeek);
-        const sessionsToDisplay = [...history, lastSession];
-        sessionsToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const recentSessions = collectExerciseSessions(exerciseName, allLogs).slice(-10);
+        const sessionsToDisplay = [...recentSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         let historyHTML = '';
         if (sessionsToDisplay.length > 0) {
-          historyHTML += '<div class="table-scroll"><table class="history-table"><thead><tr><th>Date</th><th>Week</th><th>Weight (kg)</th><th>Reps</th></tr></thead><tbody>';
+          historyHTML += '<div class="table-scroll"><table class="history-table"><thead><tr><th>Date</th><th>Week</th><th>Weight (kg)</th><th>Reps</th><th>Mean 1RM (kg)</th></tr></thead><tbody>';
           sessionsToDisplay.forEach(s => {
-            historyHTML += `<tr><td>${s.date}</td><td>${s.week}</td><td>${s.weight.toFixed(1)}</td><td>${(s.reps || []).join(', ')}</td></tr>`;
+            const rowOneRM = estimateOneRM(s.weight, s.reps);
+            historyHTML += `<tr><td>${s.date}</td><td>${s.week}</td><td>${s.weight.toFixed(1)}</td><td>${(s.reps || []).join(', ')}</td><td>${rowOneRM > 0 ? rowOneRM.toFixed(1) : '—'}</td></tr>`;
           });
           historyHTML += '</tbody></table></div>';
+        }
+
+        let statRowHTML = '';
+        const latestOneRM = estimateOneRM(lastSession.weight, lastSession.reps);
+        if (latestOneRM > 0) {
+          const prevSession = recentSessions.length > 1 ? recentSessions[recentSessions.length - 2] : null;
+          const prevOneRM = prevSession ? estimateOneRM(prevSession.weight, prevSession.reps) : null;
+          let deltaHTML = '';
+          if (prevOneRM !== null && prevOneRM > 0) {
+            const pctDelta = ((latestOneRM - prevOneRM) / prevOneRM) * 100;
+            const dir = Math.abs(pctDelta) < 0.05 ? 'flat' : (pctDelta > 0 ? 'up' : 'down');
+            const sign = pctDelta > 0 ? '+' : '';
+            deltaHTML = `<span class="stat-delta ${dir}">${sign}${pctDelta.toFixed(1)}%</span>`;
+          }
+          const sparklineHTML = renderTrendSparkline(recentSessions);
+          statRowHTML = `
+            <div class="stat-row">
+              <div>
+                <div class="small">Est. 1RM (mean reps)</div>
+                <div class="stat-value">${latestOneRM.toFixed(1)} kg ${deltaHTML}</div>
+              </div>
+              ${sparklineHTML ? `<div class="stat-sparkline">${sparklineHTML}</div>` : ''}
+            </div>
+          `;
         }
 
         if (nextWeek === 4 && lastSession.week === 3) {
@@ -233,6 +269,7 @@
         return `
           <div class="analysis-card">
             <h3>${exerciseName}</h3>
+            ${statRowHTML}
             ${historyHTML}
             ${recommendationHTML}
           </div>
