@@ -103,6 +103,14 @@ function parseLoggedExercise(foundEx) {
   };
 }
 
+// A partially-saved session (see saveSession in index.html) stores untouched
+// exercises as weight "0" / reps "0" rather than omitting them. Takes the output
+// of parseLoggedExercise and reports whether the entry is really just a blank
+// placeholder (exercise skipped that day), not a real 0kg/0-rep performance.
+function isSkippedExercise(parsed) {
+  return !parsed.weight || parsed.reps.length === 0 || parsed.reps.every((r) => !r);
+}
+
 function toggleGroup(contentId) {
   const el = document.getElementById(contentId);
   const header = document.querySelector(`[data-target="${contentId}"]`);

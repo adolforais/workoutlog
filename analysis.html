@@ -41,14 +41,15 @@
         return Math.round((x || 0) / s) * s;
       }
 
-      // Same six formulas as the One-Rep Max Calculator (onerepmax.html), averaged.
+      // Same six formulas as the One-Rep Max Calculator (onerepmax.html), each paired
+      // with its inverse (weightAt) so a rep target can be projected back to a weight.
       const oneRmFormulas = [
-        (w, r) => w * (1 + r / 30),                                   // Epley
-        (w, r) => w * 36 / (37 - r),                                  // Brzycki
-        (w, r) => w * Math.pow(r, 0.10),                              // Lombardi
-        (w, r) => w * (1 + 0.025 * r),                                // O'Conner
-        (w, r) => (100 * w) / (48.8 + 53.8 * Math.exp(-0.075 * r)),   // Wathan
-        (w, r) => (100 * w) / (52.2 + 41.9 * Math.exp(-0.055 * r)),   // Mayhew
+        { oneRM: (w, r) => w * (1 + r / 30),                                 weightAt: (orm, n) => orm / (1 + n / 30) },               // Epley
+        { oneRM: (w, r) => w * 36 / (37 - r),                                weightAt: (orm, n) => orm * (37 - n) / 36 },              // Brzycki
+        { oneRM: (w, r) => w * Math.pow(r, 0.10),                            weightAt: (orm, n) => orm / Math.pow(n, 0.10) },          // Lombardi
+        { oneRM: (w, r) => w * (1 + 0.025 * r),                              weightAt: (orm, n) => orm / (1 + 0.025 * n) },            // O'Conner
+        { oneRM: (w, r) => (100 * w) / (48.8 + 53.8 * Math.exp(-0.075 * r)), weightAt: (orm, n) => orm * (48.8 + 53.8 * Math.exp(-0.075 * n)) / 100 }, // Wathan
+        { oneRM: (w, r) => (100 * w) / (52.2 + 41.9 * Math.exp(-0.055 * r)), weightAt: (orm, n) => orm * (52.2 + 41.9 * Math.exp(-0.055 * n)) / 100 }, // Mayhew
       ];
 
       function meanReps(reps) {
@@ -59,8 +60,20 @@
       function estimateOneRM(weight, reps) {
         const r = meanReps(reps);
         if (!weight || !r) return 0;
-        const vals = oneRmFormulas.map(f => f(weight, r));
+        const vals = oneRmFormulas.map(f => f.oneRM(weight, r));
         return vals.reduce((a, b) => a + b, 0) / vals.length;
+      }
+
+      // Projects the weight that should produce `targetReps` at the lifter's current
+      // estimated strength, derived from an actually-logged weight/reps performance.
+      // Each formula's own 1RM feeds its own inverse (weightAt), then the per-formula
+      // projections are averaged - the same methodology as the calculator, run twice.
+      function projectWeightForReps(weight, reps, targetReps) {
+        const r = meanReps(reps);
+        if (!weight || !r || !targetReps) return 0;
+        const perFormulaOneRM = oneRmFormulas.map(f => f.oneRM(weight, r));
+        const perFormulaWeight = oneRmFormulas.map((f, i) => f.weightAt(perFormulaOneRM[i], targetReps));
+        return perFormulaWeight.reduce((a, b) => a + b, 0) / perFormulaWeight.length;
       }
 
       function renderTrendSparkline(sessions) {
@@ -101,11 +114,13 @@
           const entry = allLogs[i];
           const foundEx = entry.log && entry.log.find(l => l.name === exerciseName);
           if (!foundEx) continue;
+          const parsed = parseLoggedExercise(foundEx);
+          if (isSkippedExercise(parsed)) continue; // exercise left blank that day
           out.push({
             index: i,
             date: entry.date,
             week: parseInt(entry.week),
-            ...parseLoggedExercise(foundEx),
+            ...parsed,
           });
         }
         return out; // chronological order, earliest to latest
@@ -118,12 +133,14 @@
           const entry = allLogs[i];
           const foundEx = entry.log && entry.log.find(l => l.name === exerciseName);
           if (!foundEx) continue;
+          const parsed = parseLoggedExercise(foundEx);
+          if (isSkippedExercise(parsed)) continue; // exercise left blank that day
           const w = parseInt(entry.week);
           if (preferredWeeks.includes(w)) {
             return {
               date: entry.date,
               week: w,
-              ...parseLoggedExercise(foundEx),
+              ...parsed,
             };
           }
         }
@@ -153,14 +170,15 @@
         let lastSession = null;
         for (let i = allLogs.length - 1; i >= 0; i--) {
           const foundEx = allLogs[i].log.find(l => l.name === exerciseName);
-          if (foundEx) {
-            lastSession = {
-              date: allLogs[i].date,
-              week: parseInt(allLogs[i].week),
-              ...parseLoggedExercise(foundEx),
-            };
-            break;
-          }
+          if (!foundEx) continue;
+          const parsed = parseLoggedExercise(foundEx);
+          if (isSkippedExercise(parsed)) continue; // exercise left blank that day - keep looking back
+          lastSession = {
+            date: allLogs[i].date,
+            week: parseInt(allLogs[i].week),
+            ...parsed,
+          };
+          break;
         }
         if (!lastSession) return '';
 
@@ -245,8 +263,9 @@
           const achievedTopReps = lastSession.reps.length > 0 && lastSession.reps.every(r => r >= topOfRepRange);
 
           if (failedToMeetMinimum) {
-            const newWeight = (lastSession.weight * 0.9).toFixed(1);
-            recommendationHTML = `<span class="recommendation rec-reduce">ACTION: Reduce weight. You fell below the target rep range. Try about ${newWeight} kg next time.</span>`;
+            const lowKg = roundToStep(projectWeightForReps(lastSession.weight, lastSession.reps, topOfRepRange), 0.5);
+            const highKg = roundToStep(projectWeightForReps(lastSession.weight, lastSession.reps, minOfRepRange), 0.5);
+            recommendationHTML = `<span class="recommendation rec-reduce">ACTION: Reduce weight. You fell below the target rep range. Based on your estimated 1RM, try about ${lowKg.toFixed(1)} to ${highKg.toFixed(1)} kg next time to land back in the ${minOfRepRange}-${topOfRepRange} rep range.</span>`;
           } else if (achievedTopReps) {
             const newWeight = (lastSession.weight + 2.5).toFixed(1);
             recommendationHTML = `<span class="recommendation rec-increase">ACTION: Increase weight. You hit the top of the rep range. Try about ${newWeight} kg.</span>`;
